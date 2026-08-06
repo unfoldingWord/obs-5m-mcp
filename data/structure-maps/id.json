@@ -1,0 +1,149 @@
+{
+  "language": "id",
+  "languageName": "Indonesian",
+  "referenceLanguage": "en",
+  "referenceRepo": "en_obs_tf",
+  "sections": [
+    {
+      "key": "intro",
+      "id": "0",
+      "enTitle": "Introduction",
+      "level": 2
+    },
+    {
+      "key": "keyIdea",
+      "id": "0.1",
+      "enTitle": "Key Idea",
+      "level": 3
+    },
+    {
+      "key": "creedalVerse",
+      "id": "0.2",
+      "enTitle": "Creedal Verse",
+      "level": 3
+    },
+    {
+      "key": "metanarrative",
+      "id": "0.3",
+      "enTitle": "Metanarrative Summary",
+      "level": 3
+    },
+    {
+      "key": "storyFrames",
+      "id": "0.4",
+      "enTitle": "Open Bible Story",
+      "level": 3
+    },
+    {
+      "key": "communityStudy",
+      "id": "1",
+      "enTitle": "Community Study",
+      "level": 1,
+      "packaging": "inline"
+    },
+    {
+      "key": "biblicalInterpretation",
+      "id": "2",
+      "enTitle": "Biblical Interpretation: Observing the Details of the Story",
+      "level": 2
+    },
+    {
+      "key": "observation",
+      "id": "2.1",
+      "enTitle": "Observation Questions",
+      "level": 3
+    },
+    {
+      "key": "translation",
+      "id": "2.2",
+      "enTitle": "Translation Questions",
+      "level": 3
+    },
+    {
+      "key": "theologicalDialogue",
+      "id": "3",
+      "enTitle": "Theological Dialogue: Discussing the Meaning of the Story",
+      "level": 2
+    },
+    {
+      "key": "discourse",
+      "id": "3.1",
+      "enTitle": "Discourse Questions",
+      "level": 3
+    },
+    {
+      "key": "theological",
+      "id": "3.2",
+      "enTitle": "Theological Questions",
+      "level": 3
+    },
+    {
+      "key": "drafting",
+      "id": "3.3",
+      "enTitle": "Movement 2 Drafting",
+      "level": 1,
+      "packaging": "transclusion"
+    },
+    {
+      "key": "personalReflection",
+      "id": "4",
+      "enTitle": "Personal Reflection: Following the Teaching of the Story",
+      "level": 2
+    },
+    {
+      "key": "journal",
+      "id": "4.1",
+      "enTitle": "Journal Reflection",
+      "level": 3
+    },
+    {
+      "key": "checking",
+      "id": "4.2",
+      "enTitle": "Movement 3 Checking",
+      "level": 1,
+      "packaging": "transclusion"
+    },
+    {
+      "key": "ministry",
+      "id": "5",
+      "enTitle": "Ministry Practice",
+      "level": 1,
+      "packaging": "transclusion"
+    },
+    {
+      "key": "missional",
+      "id": "6",
+      "enTitle": "Missional Outreach",
+      "level": 1,
+      "packaging": "transclusion"
+    },
+    {
+      "key": "conclusion",
+      "id": "7",
+      "enTitle": "Conclusion",
+      "level": 1,
+      "packaging": "transclusion"
+    }
+  ],
+  "requiredChecks": [
+    "frameCountMatch",
+    "hasKeyIdea",
+    "hasCreedalVerse",
+    "hasMetanarrative",
+    "hasFrames",
+    "hasObservation",
+    "hasTranslation",
+    "hasDiscourse",
+    "hasTheological",
+    "hasJournal",
+    "hasCommunityStudy"
+  ],
+  "softChecks": [
+    "hasDrafting",
+    "hasChecking",
+    "hasMinistry",
+    "hasMissional",
+    "hasConclusion",
+    "observationFrameCoverage"
+  ]
+}

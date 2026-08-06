@@ -1,0 +1,134 @@
+{
+  "overview": {
+    "tagline": "The whole story; for the formation of the church.",
+    "purpose": "Scripture does not merely inform the church—it forms it. OBS Theological Formation walks communities through fifty biblical narratives so they observe, discuss, apply, serve, and share each story in their heart language.",
+    "obs": "Open Bible Stories recounts fifty key narratives from Creation to New Creation. Together they are one unified account of what God has done, is doing, and will do—designed to form the community that tells them, not isolated lessons.",
+    "fiveMovements": "Each story uses a fivefold process (Biblical Interpretation → Theological Dialogue → Personal Reflection → Ministry Practice → Missional Outreach), framed by Community Study before and Conclusion after. Every movement is meant not just to inform but to form."
+  },
+  "movements": [
+    {
+      "id": 1,
+      "name": "Biblical Interpretation",
+      "shortName": "Observe",
+      "purpose": "Observing the details of the story",
+      "description": "Exegetical movement: grasp what the text says. Observe story details and clarify translation terms before discussing meaning.",
+      "part": "movement1",
+      "sections": ["Observation Questions", "Translation Questions"]
+    },
+    {
+      "id": 2,
+      "name": "Theological Dialogue",
+      "shortName": "Discuss",
+      "purpose": "Discussing the meaning of the story",
+      "description": "Theological movement: discuss what the text means. Discourse and theological questions, then draft each story panel and record translation decisions.",
+      "part": "movement2",
+      "sections": ["Discourse Questions", "Theological Questions", "Translation Draft"],
+      "activities": [
+        {
+          "part": "drafting",
+          "name": "Translation Draft",
+          "purpose": "Draft each story panel and record translation decisions"
+        }
+      ]
+    },
+    {
+      "id": 3,
+      "name": "Personal Reflection",
+      "shortName": "Reflect",
+      "purpose": "Following the teaching of the story",
+      "description": "Personal movement: apply what the text commands. Journal reflection, then team quality checking for accuracy, clarity, and naturalness.",
+      "part": "movement3",
+      "sections": ["Journal Reflection", "Quality Checking"],
+      "activities": [
+        {
+          "part": "checking",
+          "name": "Team Check",
+          "purpose": "Check draft for accuracy, clarity, naturalness, consistency"
+        }
+      ]
+    },
+    {
+      "id": 4,
+      "name": "Ministry Practice",
+      "shortName": "Serve",
+      "purpose": "Serving the church with the story",
+      "description": "Ecclesial movement: minister the text in the church community—plan how this story serves the local church.",
+      "part": "movement4",
+      "sections": ["Church Ministry"]
+    },
+    {
+      "id": 5,
+      "name": "Missional Outreach",
+      "shortName": "Share",
+      "purpose": "Sharing the truth of the story (evangelism)",
+      "description": "Missional movement: announce the text to the surrounding world—plan witness and outreach beyond the church.",
+      "part": "movement5",
+      "sections": ["Mission Engagement"]
+    }
+  ],
+  "framing": {
+    "before": {
+      "part": "community",
+      "name": "Community Study",
+      "purpose": "Community formation activity / devotion before the five movements"
+    },
+    "after": {
+      "part": "conclusion",
+      "name": "Conclusion",
+      "purpose": "Community review reflection and handoff of revised draft"
+    }
+  },
+  "sessionFlow": [
+    "intro",
+    "frames",
+    "community",
+    "movement1",
+    "movement2",
+    "drafting",
+    "movement3",
+    "checking",
+    "movement4",
+    "movement5",
+    "conclusion"
+  ],
+  "formationPlan": {
+    "summary": "Optional dialogues before or alongside OBS so the community engages stories with a shared focus on mission, church, and Christian formation.",
+    "dialogues": [
+      {
+        "id": "mission",
+        "name": "Mission: Participating in God’s Purpose Together",
+        "passages": ["Matthew 28:16-20", "Acts 1:6-8"],
+        "keyQuestion": "What is the mission of your network? Who has God called you to reach?"
+      },
+      {
+        "id": "church",
+        "name": "Church: Keeping God’s Church in the Center",
+        "passages": ["Ephesians 3:7-13"],
+        "keyQuestion": "What is the makeup and structure of your church network? Who are the key leaders?"
+      },
+      {
+        "id": "formation",
+        "name": "Formation: Engaging God’s Word for Transformation",
+        "passages": ["Hebrews 5:11–6:1", "2 Peter 3:14-18"],
+        "keyQuestion": "How are Christians and churches in your context maturing in the faith?"
+      },
+      {
+        "id": "summary",
+        "name": "Summary of Formation Plan",
+        "passages": ["2 Timothy 2:2"],
+        "keyQuestion": "How will your church or network approach theological formation?"
+      }
+    ]
+  },
+  "source": {
+    "title": "OBS + Theological Formation",
+    "identifier": "obs-tf",
+    "url": "https://git.door43.org/unfoldingWord/en_obs_tf",
+    "formationStories": "https://formationstories.org/",
+    "introduction": "https://formationstories.org/introduction/",
+    "obsIndex": "https://formationstories.org/obs/",
+    "formationPlan": "https://formationstories.org/plan/",
+    "publisher": "Strategic Mission Collective (Formation Stories), built upon Open Bible Stories by unfoldingWord",
+    "license": "CC BY-SA 4.0"
+  }
+}

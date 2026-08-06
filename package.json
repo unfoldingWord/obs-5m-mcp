@@ -1,0 +1,49 @@
+{
+  "name": "obs-5m-mcp",
+  "version": "0.2.0",
+  "description": "MCP server for OBS + Theological Formation (Five Movements) — Door43 en_obs_tf + self-hosted PDFs",
+  "type": "module",
+  "private": true,
+  "scripts": {
+    "dev": "wrangler dev --port 8790",
+    "dev:web": "npm run dev --prefix web",
+    "build:web": "npm run build --prefix web",
+    "deploy": "wrangler deploy",
+    "deploy:with-web": "npm run build:web && wrangler deploy",
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "test:unit": "vitest run tests/unit/",
+    "test:contracts": "vitest run tests/contracts/",
+    "test:ci": "vitest run --reporter=dot",
+    "test:smoke": "tsx scripts/smoke-mcp.ts",
+    "ingest:id": "tsx scripts/ingest-indonesian-pdfs.ts",
+    "convert:id": "tsx scripts/convert-pdf-to-md.ts",
+    "convert:id:from-pdf": "tsx scripts/convert-pdf-to-md.ts --from-pdf",
+    "plain-md": "tsx scripts/plain-pdf-to-md.ts",
+    "export:dcs": "tsx scripts/export-dcs-repo.ts",
+    "check:coverage": "tsx scripts/check-pdf-content-coverage.ts",
+    "prepare": "node -e \"process.exit(0)\""
+  },
+  "dependencies": {
+    "@modelcontextprotocol/sdk": "^1.15.1",
+    "agents": "^0.0.97",
+    "fflate": "^0.8.3",
+    "pdfjs-dist": "^5.6.205",
+    "unpdf": "^1.7.0",
+    "zod": "^3.22.4",
+    "zod-to-json-schema": "^3.24.6"
+  },
+  "devDependencies": {
+    "@cloudflare/workers-types": "^4.20260528.1",
+    "@types/node": "^20.19.43",
+    "tsx": "^4.20.3",
+    "typescript": "^5.3.3",
+    "vitest": "^3.0.0",
+    "wrangler": "^4.20.0"
+  },
+  "engines": {
+    "node": ">=20.0.0"
+  },
+  "license": "MIT"
+}

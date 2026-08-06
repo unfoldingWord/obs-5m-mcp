@@ -1,0 +1,25 @@
+node_modules/
+dist/
+.wrangler/
+.dev.vars
+.env
+.env.*
+!.env.example
+data/incoming/**
+!data/incoming/.gitkeep
+data/indonesian-text/*.txt
+data/indonesian-text-sample*.txt
+# Per-story MD files are regenerated; keep bundle + report for Workers/runtime
+# (obs_story_N.md optional in git — bundle.json is the runtime source of truth)
+data/obs-tf-md/**/*.md
+!data/obs-tf-md/**/bundle.json
+exports/
+*.log
+.DS_Store
+coverage/
+web/node_modules/
+web/.svelte-kit/
+web/build/
+web/.env
+web/.dev.vars
+

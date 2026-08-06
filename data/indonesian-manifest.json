@@ -1,0 +1,120 @@
+{
+  "language": "id",
+  "languageName": "Indonesian",
+  "source": "Self-hosted PDFs (issue unfoldingWord/bt-servant-engine#215) — used only when DCS has no OBS Theological Formation (tc-ready) for the language",
+  "license": "CC BY-SA 4.0",
+  "stories": [
+    {
+      "story": 1,
+      "title": "OBS 1 (Indonesia)",
+      "r2Key": "id/obs-tf/01.pdf",
+      "textR2Key": "id/obs-tf/01.txt",
+      "filename": "OBS 1 (Indonesia).pdf"
+    },
+    {
+      "story": 2,
+      "title": "OBS 2 (Indonesia)",
+      "r2Key": "id/obs-tf/02.pdf",
+      "textR2Key": "id/obs-tf/02.txt",
+      "filename": "OBS 2 (Indonesia).pdf"
+    },
+    {
+      "story": 3,
+      "title": "OBS 3 (Indonesia)",
+      "r2Key": "id/obs-tf/03.pdf",
+      "textR2Key": "id/obs-tf/03.txt",
+      "filename": "OBS 3 (Indonesia).pdf"
+    },
+    {
+      "story": 4,
+      "title": "OBS 4 (Indonesia)",
+      "r2Key": "id/obs-tf/04.pdf",
+      "textR2Key": "id/obs-tf/04.txt",
+      "filename": "OBS 4 (Indonesia).pdf"
+    },
+    {
+      "story": 5,
+      "title": "OBS 5 (Indonesia)",
+      "r2Key": "id/obs-tf/05.pdf",
+      "textR2Key": "id/obs-tf/05.txt",
+      "filename": "OBS 5 (Indonesia).pdf"
+    },
+    {
+      "story": 6,
+      "title": "OBS 6 (Indonesia)",
+      "r2Key": "id/obs-tf/06.pdf",
+      "textR2Key": "id/obs-tf/06.txt",
+      "filename": "OBS 6 (Indonesia).pdf"
+    },
+    {
+      "story": 7,
+      "title": "OBS 7 (Indonesia)",
+      "r2Key": "id/obs-tf/07.pdf",
+      "textR2Key": "id/obs-tf/07.txt",
+      "filename": "OBS 7 (Indonesia).pdf"
+    },
+    {
+      "story": 8,
+      "title": "OBS 8 (Indonesia)",
+      "r2Key": "id/obs-tf/08.pdf",
+      "textR2Key": "id/obs-tf/08.txt",
+      "filename": "OBS 8 (Indonesia).pdf"
+    },
+    {
+      "story": 9,
+      "title": "OBS 9 (Indonesia)",
+      "r2Key": "id/obs-tf/09.pdf",
+      "textR2Key": "id/obs-tf/09.txt",
+      "filename": "OBS 9 (Indonesia).pdf"
+    },
+    {
+      "story": 10,
+      "title": "OBS 10 (Indonesia)",
+      "r2Key": "id/obs-tf/10.pdf",
+      "textR2Key": "id/obs-tf/10.txt",
+      "filename": "OBS 10 (Indonesia).pdf"
+    },
+    {
+      "story": 11,
+      "title": "OBS 11 (Indonesia)",
+      "r2Key": "id/obs-tf/11.pdf",
+      "textR2Key": "id/obs-tf/11.txt",
+      "filename": "OBS 11 (Indonesia).pdf"
+    },
+    {
+      "story": 12,
+      "title": "OBS 12 (Indonesia)",
+      "r2Key": "id/obs-tf/12.pdf",
+      "textR2Key": "id/obs-tf/12.txt",
+      "filename": "OBS 12 (Indonesia).pdf"
+    },
+    {
+      "story": 13,
+      "title": "OBS 13 (Indonesia)",
+      "r2Key": "id/obs-tf/13.pdf",
+      "textR2Key": "id/obs-tf/13.txt",
+      "filename": "OBS 13 (Indonesia).pdf"
+    },
+    {
+      "story": 14,
+      "title": "OBS 14 (Indonesia)",
+      "r2Key": "id/obs-tf/14.pdf",
+      "textR2Key": "id/obs-tf/14.txt",
+      "filename": "OBS 14 (Indonesia).pdf"
+    },
+    {
+      "story": 15,
+      "title": "OBS 15 (Indonesia)",
+      "r2Key": "id/obs-tf/15.pdf",
+      "textR2Key": "id/obs-tf/15.txt",
+      "filename": "OBS 15 (Indonesia).pdf"
+    },
+    {
+      "story": 16,
+      "title": "OBS 16 (Indonesia)",
+      "r2Key": "id/obs-tf/16.pdf",
+      "textR2Key": "id/obs-tf/16.txt",
+      "filename": "OBS 16 (Indonesia).pdf"
+    }
+  ]
+}

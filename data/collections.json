@@ -1,0 +1,70 @@
+{
+  "collections": [
+    {
+      "id": 1,
+      "name": "Beginnings",
+      "stories": [1, 2, 3],
+      "theme": "Where the story of God and humanity begins"
+    },
+    {
+      "id": 2,
+      "name": "Patriarchs",
+      "stories": [4, 5, 6, 7, 8],
+      "theme": "How God chose and shaped a people for his purposes"
+    },
+    {
+      "id": 3,
+      "name": "Nation",
+      "stories": [9, 10, 11, 12, 13],
+      "theme": "How God delivered and defined his people"
+    },
+    {
+      "id": 4,
+      "name": "Kingdom",
+      "stories": [14, 15, 16, 17, 18],
+      "theme": "How God established and tested his people under kings"
+    },
+    {
+      "id": 5,
+      "name": "Exile and Return",
+      "stories": [19, 20, 21],
+      "theme": "How God remained faithful when his people were not"
+    },
+    {
+      "id": 6,
+      "name": "Jesus",
+      "stories": [22, 23, 24, 25, 26],
+      "theme": "The arrival of the One the whole story has been pointing toward"
+    },
+    {
+      "id": 7,
+      "name": "Jesus' Ministry Part 1",
+      "stories": [27, 28, 29, 30, 31, 32],
+      "theme": "How Jesus taught his followers what it means to live in God's kingdom"
+    },
+    {
+      "id": 8,
+      "name": "Jesus' Ministry Part 2",
+      "stories": [33, 34, 35, 36, 37],
+      "theme": "How Jesus revealed the heart of God through stories and signs"
+    },
+    {
+      "id": 9,
+      "name": "Jesus' Death and Resurrection",
+      "stories": [38, 39, 40, 41, 42],
+      "theme": "The center of the story and the turning point of all history"
+    },
+    {
+      "id": 10,
+      "name": "Church",
+      "stories": [43, 44, 45, 46, 47],
+      "theme": "How the Spirit-filled church carried the story into the world"
+    },
+    {
+      "id": 11,
+      "name": "Future Hope",
+      "stories": [48, 49, 50],
+      "theme": "Where the story is going and the hope that sustains the church until then"
+    }
+  ]
+}

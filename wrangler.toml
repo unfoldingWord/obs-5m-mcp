@@ -1,0 +1,39 @@
+name = "obs-5m-mcp"
+main = "src/worker.ts"
+compatibility_date = "2025-05-01"
+compatibility_flags = ["nodejs_compat", "global_fetch_strictly_public"]
+# Personal Cloudflare account (Abelper54)
+account_id = "de1e20d3208ac1885aa966f426663566"
+
+# SvelteKit Workers Assets: enable after a successful `npm run build:web`
+# (Windows EBUSY on `.svelte-kit/cloudflare` can block the adapter; use Worker HTML /chat until then.)
+# [assets]
+# directory = "web/.svelte-kit/cloudflare"
+# binding = "ASSETS"
+# run_worker_first = true
+
+[observability]
+enabled = true
+head_sampling_rate = 1
+
+[[kv_namespaces]]
+binding = "OBS_5M_CACHE"
+id = "ab1abe15951f494899a7aee53a7007d9"
+preview_id = "0bbe075339fd46eeadfd5bf618c1aa5c"
+
+# Enable R2 in the Cloudflare dashboard, then uncomment:
+#   npx wrangler r2 bucket create obs-5m-mcp-assets
+# [[r2_buckets]]
+# binding = "ASSETS_BUCKET"
+# bucket_name = "obs-5m-mcp-assets"
+
+[[durable_objects.bindings]]
+name = "MCP_AGENT"
+class_name = "Obs5mMCP"
+
+[[migrations]]
+tag = "v1"
+new_sqlite_classes = ["Obs5mMCP"]
+
+[vars]
+PUBLIC_BASE_URL = "https://obs-5m-mcp.abelper54.workers.dev"

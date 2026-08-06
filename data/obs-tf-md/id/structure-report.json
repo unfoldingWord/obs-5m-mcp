@@ -1,0 +1,963 @@
+{
+  "language": "id",
+  "generatedAt": "2026-08-05T19:40:39.699Z",
+  "stories": [
+    {
+      "story": 1,
+      "ok": true,
+      "inputSource": "plain-md",
+      "mismatches": [],
+      "softMetrics": {
+        "frameCount": 16,
+        "observationFrameCount": 16,
+        "discourseCount": 4,
+        "theologicalCount": 3,
+        "journalCount": 5,
+        "hasCommunityStudyTransclusion": false,
+        "hasInlineCommunityStudy": true,
+        "translationTermTotal": 29,
+        "translationTermsPerFrame": {
+          "01-01": 5,
+          "01-02": 5,
+          "01-03": 2,
+          "01-04": 1,
+          "01-05": 1,
+          "01-06": 1,
+          "01-07": 2,
+          "01-08": 1,
+          "01-09": 3,
+          "01-10": 2,
+          "01-11": 1,
+          "01-12": 1,
+          "01-13": 1,
+          "01-14": 1,
+          "01-15": 1,
+          "01-16": 1
+        },
+        "translationFragmentedFrames": [],
+        "skeleton": {
+          "hasBiblicalInterpretation": true,
+          "hasTheologicalDialogue": true,
+          "hasPersonalReflection": true,
+          "hasCommunityStudyInline": true,
+          "hasMovement2Tx": true,
+          "hasMovement3Tx": true,
+          "hasMovement4Tx": true,
+          "hasMovement5Tx": true,
+          "hasConclusionTx": true
+        },
+        "reference": {
+          "frameCount": 16,
+          "observationFrameCount": 16,
+          "discourseCount": 4,
+          "discourseCountDelta": 0
+        }
+      },
+      "converted": {
+        "frameCount": 16,
+        "observationFrames": 16,
+        "discourseCount": 4
+      },
+      "reference": {
+        "frameCount": 16,
+        "observationFrames": 16,
+        "discourseCount": 4
+      }
+    },
+    {
+      "story": 2,
+      "ok": true,
+      "inputSource": "plain-md",
+      "mismatches": [],
+      "softMetrics": {
+        "frameCount": 12,
+        "observationFrameCount": 12,
+        "discourseCount": 4,
+        "theologicalCount": 3,
+        "journalCount": 3,
+        "hasCommunityStudyTransclusion": false,
+        "hasInlineCommunityStudy": true,
+        "translationTermTotal": 29,
+        "translationTermsPerFrame": {
+          "02-01": 3,
+          "02-02": 3,
+          "02-03": 2,
+          "02-04": 2,
+          "02-05": 2,
+          "02-06": 2,
+          "02-07": 4,
+          "02-08": 1,
+          "02-09": 3,
+          "02-10": 2,
+          "02-11": 3,
+          "02-12": 2
+        },
+        "translationFragmentedFrames": [],
+        "skeleton": {
+          "hasBiblicalInterpretation": true,
+          "hasTheologicalDialogue": true,
+          "hasPersonalReflection": true,
+          "hasCommunityStudyInline": true,
+          "hasMovement2Tx": true,
+          "hasMovement3Tx": true,
+          "hasMovement4Tx": true,
+          "hasMovement5Tx": true,
+          "hasConclusionTx": true
+        },
+        "reference": {
+          "frameCount": 12,
+          "observationFrameCount": 12,
+          "discourseCount": 5,
+          "discourseCountDelta": -1
+        }
+      },
+      "converted": {
+        "frameCount": 12,
+        "observationFrames": 12,
+        "discourseCount": 4
+      },
+      "reference": {
+        "frameCount": 12,
+        "observationFrames": 12,
+        "discourseCount": 5
+      }
+    },
+    {
+      "story": 3,
+      "ok": true,
+      "inputSource": "plain-md",
+      "mismatches": [],
+      "softMetrics": {
+        "frameCount": 16,
+        "observationFrameCount": 16,
+        "discourseCount": 5,
+        "theologicalCount": 3,
+        "journalCount": 4,
+        "hasCommunityStudyTransclusion": false,
+        "hasInlineCommunityStudy": true,
+        "translationTermTotal": 35,
+        "translationTermsPerFrame": {
+          "03-01": 4,
+          "03-02": 2,
+          "03-03": 2,
+          "03-04": 2,
+          "03-05": 1,
+          "03-06": 4,
+          "03-07": 2,
+          "03-08": 2,
+          "03-09": 2,
+          "03-10": 2,
+          "03-11": 3,
+          "03-12": 1,
+          "03-13": 2,
+          "03-14": 2,
+          "03-15": 2,
+          "03-16": 2
+        },
+        "translationFragmentedFrames": [],
+        "skeleton": {
+          "hasBiblicalInterpretation": true,
+          "hasTheologicalDialogue": true,
+          "hasPersonalReflection": true,
+          "hasCommunityStudyInline": true,
+          "hasMovement2Tx": true,
+          "hasMovement3Tx": true,
+          "hasMovement4Tx": true,
+          "hasMovement5Tx": true,
+          "hasConclusionTx": true
+        },
+        "reference": {
+          "frameCount": 16,
+          "observationFrameCount": 16,
+          "discourseCount": 5,
+          "discourseCountDelta": 0
+        }
+      },
+      "converted": {
+        "frameCount": 16,
+        "observationFrames": 16,
+        "discourseCount": 5
+      },
+      "reference": {
+        "frameCount": 16,
+        "observationFrames": 16,
+        "discourseCount": 5
+      }
+    },
+    {
+      "story": 4,
+      "ok": true,
+      "inputSource": "plain-md",
+      "mismatches": [],
+      "softMetrics": {
+        "frameCount": 9,
+        "observationFrameCount": 9,
+        "discourseCount": 3,
+        "theologicalCount": 3,
+        "journalCount": 3,
+        "hasCommunityStudyTransclusion": false,
+        "hasInlineCommunityStudy": true,
+        "translationTermTotal": 23,
+        "translationTermsPerFrame": {
+          "04-01": 3,
+          "04-02": 2,
+          "04-03": 3,
+          "04-04": 3,
+          "04-05": 2,
+          "04-06": 2,
+          "04-07": 2,
+          "04-08": 4,
+          "04-09": 2
+        },
+        "translationFragmentedFrames": [],
+        "skeleton": {
+          "hasBiblicalInterpretation": true,
+          "hasTheologicalDialogue": true,
+          "hasPersonalReflection": true,
+          "hasCommunityStudyInline": true,
+          "hasMovement2Tx": true,
+          "hasMovement3Tx": true,
+          "hasMovement4Tx": true,
+          "hasMovement5Tx": true,
+          "hasConclusionTx": true
+        },
+        "reference": {
+          "frameCount": 9,
+          "observationFrameCount": 9,
+          "discourseCount": 3,
+          "discourseCountDelta": 0
+        }
+      },
+      "converted": {
+        "frameCount": 9,
+        "observationFrames": 9,
+        "discourseCount": 3
+      },
+      "reference": {
+        "frameCount": 9,
+        "observationFrames": 9,
+        "discourseCount": 3
+      }
+    },
+    {
+      "story": 5,
+      "ok": true,
+      "inputSource": "plain-md",
+      "mismatches": [],
+      "softMetrics": {
+        "frameCount": 10,
+        "observationFrameCount": 10,
+        "discourseCount": 4,
+        "theologicalCount": 3,
+        "journalCount": 4,
+        "hasCommunityStudyTransclusion": false,
+        "hasInlineCommunityStudy": true,
+        "translationTermTotal": 24,
+        "translationTermsPerFrame": {
+          "05-01": 2,
+          "05-02": 2,
+          "05-03": 3,
+          "05-04": 3,
+          "05-05": 1,
+          "05-06": 3,
+          "05-07": 2,
+          "05-08": 3,
+          "05-09": 3,
+          "05-10": 2
+        },
+        "translationFragmentedFrames": [],
+        "skeleton": {
+          "hasBiblicalInterpretation": true,
+          "hasTheologicalDialogue": true,
+          "hasPersonalReflection": true,
+          "hasCommunityStudyInline": true,
+          "hasMovement2Tx": true,
+          "hasMovement3Tx": true,
+          "hasMovement4Tx": true,
+          "hasMovement5Tx": true,
+          "hasConclusionTx": true
+        },
+        "reference": {
+          "frameCount": 10,
+          "observationFrameCount": 10,
+          "discourseCount": 4,
+          "discourseCountDelta": 0
+        }
+      },
+      "converted": {
+        "frameCount": 10,
+        "observationFrames": 10,
+        "discourseCount": 4
+      },
+      "reference": {
+        "frameCount": 10,
+        "observationFrames": 10,
+        "discourseCount": 4
+      }
+    },
+    {
+      "story": 6,
+      "ok": true,
+      "inputSource": "plain-md",
+      "mismatches": [],
+      "softMetrics": {
+        "frameCount": 7,
+        "observationFrameCount": 7,
+        "discourseCount": 3,
+        "theologicalCount": 3,
+        "journalCount": 4,
+        "hasCommunityStudyTransclusion": false,
+        "hasInlineCommunityStudy": true,
+        "translationTermTotal": 20,
+        "translationTermsPerFrame": {
+          "06-01": 2,
+          "06-02": 2,
+          "06-03": 2,
+          "06-04": 3,
+          "06-05": 4,
+          "06-06": 3,
+          "06-07": 4
+        },
+        "translationFragmentedFrames": [],
+        "skeleton": {
+          "hasBiblicalInterpretation": true,
+          "hasTheologicalDialogue": true,
+          "hasPersonalReflection": true,
+          "hasCommunityStudyInline": true,
+          "hasMovement2Tx": true,
+          "hasMovement3Tx": true,
+          "hasMovement4Tx": true,
+          "hasMovement5Tx": true,
+          "hasConclusionTx": true
+        },
+        "reference": {
+          "frameCount": 7,
+          "observationFrameCount": 7,
+          "discourseCount": 3,
+          "discourseCountDelta": 0
+        }
+      },
+      "converted": {
+        "frameCount": 7,
+        "observationFrames": 7,
+        "discourseCount": 3
+      },
+      "reference": {
+        "frameCount": 7,
+        "observationFrames": 7,
+        "discourseCount": 3
+      }
+    },
+    {
+      "story": 7,
+      "ok": true,
+      "inputSource": "plain-md",
+      "mismatches": [],
+      "softMetrics": {
+        "frameCount": 10,
+        "observationFrameCount": 10,
+        "discourseCount": 4,
+        "theologicalCount": 3,
+        "journalCount": 4,
+        "hasCommunityStudyTransclusion": false,
+        "hasInlineCommunityStudy": true,
+        "translationTermTotal": 26,
+        "translationTermsPerFrame": {
+          "07-01": 3,
+          "07-02": 2,
+          "07-03": 3,
+          "07-04": 2,
+          "07-05": 3,
+          "07-06": 3,
+          "07-07": 2,
+          "07-08": 2,
+          "07-09": 2,
+          "07-10": 4
+        },
+        "translationFragmentedFrames": [],
+        "skeleton": {
+          "hasBiblicalInterpretation": true,
+          "hasTheologicalDialogue": true,
+          "hasPersonalReflection": true,
+          "hasCommunityStudyInline": true,
+          "hasMovement2Tx": true,
+          "hasMovement3Tx": true,
+          "hasMovement4Tx": true,
+          "hasMovement5Tx": true,
+          "hasConclusionTx": true
+        },
+        "reference": {
+          "frameCount": 10,
+          "observationFrameCount": 10,
+          "discourseCount": 4,
+          "discourseCountDelta": 0
+        }
+      },
+      "converted": {
+        "frameCount": 10,
+        "observationFrames": 10,
+        "discourseCount": 4
+      },
+      "reference": {
+        "frameCount": 10,
+        "observationFrames": 10,
+        "discourseCount": 4
+      }
+    },
+    {
+      "story": 8,
+      "ok": true,
+      "inputSource": "plain-md",
+      "mismatches": [],
+      "softMetrics": {
+        "frameCount": 15,
+        "observationFrameCount": 15,
+        "discourseCount": 4,
+        "theologicalCount": 3,
+        "journalCount": 4,
+        "hasCommunityStudyTransclusion": false,
+        "hasInlineCommunityStudy": true,
+        "translationTermTotal": 45,
+        "translationTermsPerFrame": {
+          "08-01": 3,
+          "08-02": 4,
+          "08-03": 3,
+          "08-04": 3,
+          "08-05": 4,
+          "08-06": 4,
+          "08-07": 5,
+          "08-08": 3,
+          "08-09": 2,
+          "08-10": 2,
+          "08-11": 3,
+          "08-12": 4,
+          "08-13": 1,
+          "08-14": 2,
+          "08-15": 2
+        },
+        "translationFragmentedFrames": [],
+        "skeleton": {
+          "hasBiblicalInterpretation": true,
+          "hasTheologicalDialogue": true,
+          "hasPersonalReflection": true,
+          "hasCommunityStudyInline": true,
+          "hasMovement2Tx": true,
+          "hasMovement3Tx": true,
+          "hasMovement4Tx": true,
+          "hasMovement5Tx": true,
+          "hasConclusionTx": true
+        },
+        "reference": {
+          "frameCount": 15,
+          "observationFrameCount": 15,
+          "discourseCount": 4,
+          "discourseCountDelta": 0
+        }
+      },
+      "converted": {
+        "frameCount": 15,
+        "observationFrames": 15,
+        "discourseCount": 4
+      },
+      "reference": {
+        "frameCount": 15,
+        "observationFrames": 15,
+        "discourseCount": 4
+      }
+    },
+    {
+      "story": 9,
+      "ok": true,
+      "inputSource": "plain-md",
+      "mismatches": [],
+      "softMetrics": {
+        "frameCount": 15,
+        "observationFrameCount": 15,
+        "discourseCount": 4,
+        "theologicalCount": 3,
+        "journalCount": 4,
+        "hasCommunityStudyTransclusion": false,
+        "hasInlineCommunityStudy": true,
+        "translationTermTotal": 41,
+        "translationTermsPerFrame": {
+          "09-01": 4,
+          "09-02": 5,
+          "09-03": 2,
+          "09-04": 2,
+          "09-05": 2,
+          "09-06": 2,
+          "09-07": 3,
+          "09-08": 2,
+          "09-09": 2,
+          "09-10": 3,
+          "09-11": 2,
+          "09-12": 5,
+          "09-13": 3,
+          "09-14": 2,
+          "09-15": 2
+        },
+        "translationFragmentedFrames": [],
+        "skeleton": {
+          "hasBiblicalInterpretation": true,
+          "hasTheologicalDialogue": true,
+          "hasPersonalReflection": true,
+          "hasCommunityStudyInline": true,
+          "hasMovement2Tx": true,
+          "hasMovement3Tx": true,
+          "hasMovement4Tx": true,
+          "hasMovement5Tx": true,
+          "hasConclusionTx": true
+        },
+        "reference": {
+          "frameCount": 15,
+          "observationFrameCount": 15,
+          "discourseCount": 4,
+          "discourseCountDelta": 0
+        }
+      },
+      "converted": {
+        "frameCount": 15,
+        "observationFrames": 15,
+        "discourseCount": 4
+      },
+      "reference": {
+        "frameCount": 15,
+        "observationFrames": 15,
+        "discourseCount": 4
+      }
+    },
+    {
+      "story": 10,
+      "ok": true,
+      "inputSource": "plain-md",
+      "mismatches": [],
+      "softMetrics": {
+        "frameCount": 12,
+        "observationFrameCount": 12,
+        "discourseCount": 2,
+        "theologicalCount": 3,
+        "journalCount": 4,
+        "hasCommunityStudyTransclusion": false,
+        "hasInlineCommunityStudy": true,
+        "translationTermTotal": 29,
+        "translationTermsPerFrame": {
+          "10-01": 6,
+          "10-02": 3,
+          "10-03": 2,
+          "10-04": 2,
+          "10-05": 4,
+          "10-06": 1,
+          "10-07": 2,
+          "10-08": 3,
+          "10-09": 1,
+          "10-10": 1,
+          "10-11": 2,
+          "10-12": 2
+        },
+        "translationFragmentedFrames": [],
+        "skeleton": {
+          "hasBiblicalInterpretation": true,
+          "hasTheologicalDialogue": true,
+          "hasPersonalReflection": true,
+          "hasCommunityStudyInline": true,
+          "hasMovement2Tx": true,
+          "hasMovement3Tx": true,
+          "hasMovement4Tx": true,
+          "hasMovement5Tx": true,
+          "hasConclusionTx": true
+        },
+        "reference": {
+          "frameCount": 12,
+          "observationFrameCount": 12,
+          "discourseCount": 3,
+          "discourseCountDelta": -1
+        }
+      },
+      "converted": {
+        "frameCount": 12,
+        "observationFrames": 12,
+        "discourseCount": 2
+      },
+      "reference": {
+        "frameCount": 12,
+        "observationFrames": 12,
+        "discourseCount": 3
+      }
+    },
+    {
+      "story": 11,
+      "ok": true,
+      "inputSource": "plain-md",
+      "mismatches": [],
+      "softMetrics": {
+        "frameCount": 8,
+        "observationFrameCount": 8,
+        "discourseCount": 1,
+        "theologicalCount": 3,
+        "journalCount": 3,
+        "hasCommunityStudyTransclusion": false,
+        "hasInlineCommunityStudy": true,
+        "translationTermTotal": 18,
+        "translationTermsPerFrame": {
+          "11-01": 3,
+          "11-02": 3,
+          "11-03": 2,
+          "11-04": 2,
+          "11-05": 2,
+          "11-06": 2,
+          "11-07": 2,
+          "11-08": 2
+        },
+        "translationFragmentedFrames": [],
+        "skeleton": {
+          "hasBiblicalInterpretation": true,
+          "hasTheologicalDialogue": true,
+          "hasPersonalReflection": true,
+          "hasCommunityStudyInline": true,
+          "hasMovement2Tx": true,
+          "hasMovement3Tx": true,
+          "hasMovement4Tx": true,
+          "hasMovement5Tx": true,
+          "hasConclusionTx": true
+        },
+        "reference": {
+          "frameCount": 8,
+          "observationFrameCount": 8,
+          "discourseCount": 4,
+          "discourseCountDelta": -3
+        }
+      },
+      "converted": {
+        "frameCount": 8,
+        "observationFrames": 8,
+        "discourseCount": 1
+      },
+      "reference": {
+        "frameCount": 8,
+        "observationFrames": 8,
+        "discourseCount": 4
+      }
+    },
+    {
+      "story": 12,
+      "ok": true,
+      "inputSource": "plain-md",
+      "mismatches": [],
+      "softMetrics": {
+        "frameCount": 14,
+        "observationFrameCount": 14,
+        "discourseCount": 3,
+        "theologicalCount": 3,
+        "journalCount": 4,
+        "hasCommunityStudyTransclusion": false,
+        "hasInlineCommunityStudy": true,
+        "translationTermTotal": 41,
+        "translationTermsPerFrame": {
+          "12-01": 4,
+          "12-02": 3,
+          "12-03": 4,
+          "12-04": 2,
+          "12-05": 3,
+          "12-06": 1,
+          "12-07": 3,
+          "12-08": 2,
+          "12-09": 2,
+          "12-10": 6,
+          "12-11": 2,
+          "12-12": 2,
+          "12-13": 4,
+          "12-14": 3
+        },
+        "translationFragmentedFrames": [],
+        "skeleton": {
+          "hasBiblicalInterpretation": true,
+          "hasTheologicalDialogue": true,
+          "hasPersonalReflection": true,
+          "hasCommunityStudyInline": true,
+          "hasMovement2Tx": true,
+          "hasMovement3Tx": true,
+          "hasMovement4Tx": true,
+          "hasMovement5Tx": true,
+          "hasConclusionTx": true
+        },
+        "reference": {
+          "frameCount": 14,
+          "observationFrameCount": 14,
+          "discourseCount": 3,
+          "discourseCountDelta": 0
+        }
+      },
+      "converted": {
+        "frameCount": 14,
+        "observationFrames": 14,
+        "discourseCount": 3
+      },
+      "reference": {
+        "frameCount": 14,
+        "observationFrames": 14,
+        "discourseCount": 3
+      }
+    },
+    {
+      "story": 13,
+      "ok": true,
+      "inputSource": "plain-md",
+      "mismatches": [],
+      "softMetrics": {
+        "frameCount": 15,
+        "observationFrameCount": 15,
+        "discourseCount": 5,
+        "theologicalCount": 4,
+        "journalCount": 4,
+        "hasCommunityStudyTransclusion": false,
+        "hasInlineCommunityStudy": true,
+        "translationTermTotal": 52,
+        "translationTermsPerFrame": {
+          "13-01": 4,
+          "13-02": 5,
+          "13-03": 4,
+          "13-04": 4,
+          "13-05": 5,
+          "13-06": 4,
+          "13-07": 2,
+          "13-08": 3,
+          "13-09": 3,
+          "13-10": 5,
+          "13-11": 3,
+          "13-12": 3,
+          "13-13": 2,
+          "13-14": 3,
+          "13-15": 2
+        },
+        "translationFragmentedFrames": [],
+        "skeleton": {
+          "hasBiblicalInterpretation": true,
+          "hasTheologicalDialogue": true,
+          "hasPersonalReflection": true,
+          "hasCommunityStudyInline": true,
+          "hasMovement2Tx": true,
+          "hasMovement3Tx": true,
+          "hasMovement4Tx": true,
+          "hasMovement5Tx": true,
+          "hasConclusionTx": true
+        },
+        "reference": {
+          "frameCount": 15,
+          "observationFrameCount": 15,
+          "discourseCount": 5,
+          "discourseCountDelta": 0
+        }
+      },
+      "converted": {
+        "frameCount": 15,
+        "observationFrames": 15,
+        "discourseCount": 5
+      },
+      "reference": {
+        "frameCount": 15,
+        "observationFrames": 15,
+        "discourseCount": 5
+      }
+    },
+    {
+      "story": 14,
+      "ok": true,
+      "inputSource": "plain-md",
+      "mismatches": [
+        {
+          "check": "hasChecking",
+          "severity": "soft",
+          "message": "Missing hasChecking present in DCS reference",
+          "expected": true,
+          "actual": false
+        }
+      ],
+      "softMetrics": {
+        "frameCount": 15,
+        "observationFrameCount": 15,
+        "discourseCount": 2,
+        "theologicalCount": 3,
+        "journalCount": 0,
+        "hasCommunityStudyTransclusion": false,
+        "hasInlineCommunityStudy": true,
+        "translationTermTotal": 44,
+        "translationTermsPerFrame": {
+          "14-01": 2,
+          "14-02": 2,
+          "14-03": 3,
+          "14-04": 4,
+          "14-05": 5,
+          "14-06": 3,
+          "14-07": 2,
+          "14-08": 4,
+          "14-09": 4,
+          "14-10": 3,
+          "14-11": 3,
+          "14-12": 2,
+          "14-13": 2,
+          "14-14": 3,
+          "14-15": 2
+        },
+        "translationFragmentedFrames": [],
+        "skeleton": {
+          "hasBiblicalInterpretation": true,
+          "hasTheologicalDialogue": true,
+          "hasPersonalReflection": true,
+          "hasCommunityStudyInline": true,
+          "hasMovement2Tx": true,
+          "hasMovement3Tx": false,
+          "hasMovement4Tx": true,
+          "hasMovement5Tx": true,
+          "hasConclusionTx": true
+        },
+        "reference": {
+          "frameCount": 15,
+          "observationFrameCount": 15,
+          "discourseCount": 5,
+          "discourseCountDelta": -3
+        }
+      },
+      "converted": {
+        "frameCount": 15,
+        "observationFrames": 15,
+        "discourseCount": 2
+      },
+      "reference": {
+        "frameCount": 15,
+        "observationFrames": 15,
+        "discourseCount": 5
+      }
+    },
+    {
+      "story": 15,
+      "ok": true,
+      "inputSource": "plain-md",
+      "mismatches": [],
+      "softMetrics": {
+        "frameCount": 13,
+        "observationFrameCount": 13,
+        "discourseCount": 4,
+        "theologicalCount": 3,
+        "journalCount": 4,
+        "hasCommunityStudyTransclusion": false,
+        "hasInlineCommunityStudy": true,
+        "translationTermTotal": 36,
+        "translationTermsPerFrame": {
+          "15-01": 4,
+          "15-02": 4,
+          "15-03": 3,
+          "15-04": 1,
+          "15-05": 3,
+          "15-06": 4,
+          "15-07": 4,
+          "15-08": 3,
+          "15-09": 2,
+          "15-10": 1,
+          "15-11": 2,
+          "15-12": 2,
+          "15-13": 3
+        },
+        "translationFragmentedFrames": [],
+        "skeleton": {
+          "hasBiblicalInterpretation": true,
+          "hasTheologicalDialogue": true,
+          "hasPersonalReflection": true,
+          "hasCommunityStudyInline": true,
+          "hasMovement2Tx": true,
+          "hasMovement3Tx": true,
+          "hasMovement4Tx": true,
+          "hasMovement5Tx": true,
+          "hasConclusionTx": true
+        },
+        "reference": {
+          "frameCount": 13,
+          "observationFrameCount": 13,
+          "discourseCount": 4,
+          "discourseCountDelta": 0
+        }
+      },
+      "converted": {
+        "frameCount": 13,
+        "observationFrames": 13,
+        "discourseCount": 4
+      },
+      "reference": {
+        "frameCount": 13,
+        "observationFrames": 13,
+        "discourseCount": 4
+      }
+    },
+    {
+      "story": 16,
+      "ok": true,
+      "inputSource": "plain-md",
+      "mismatches": [
+        {
+          "check": "observationFrameCoverage",
+          "severity": "soft",
+          "message": "Observation missing frames: 16-13, 16-14, 16-15, 16-16, 16-17, 16-18",
+          "expected": 18,
+          "actual": 12
+        }
+      ],
+      "softMetrics": {
+        "frameCount": 18,
+        "observationFrameCount": 12,
+        "discourseCount": 4,
+        "theologicalCount": 4,
+        "journalCount": 4,
+        "hasCommunityStudyTransclusion": false,
+        "hasInlineCommunityStudy": true,
+        "translationTermTotal": 55,
+        "translationTermsPerFrame": {
+          "16-01": 4,
+          "16-02": 4,
+          "16-03": 3,
+          "16-04": 6,
+          "16-05": 3,
+          "16-06": 3,
+          "16-07": 3,
+          "16-08": 4,
+          "16-09": 4,
+          "16-10": 3,
+          "16-11": 3,
+          "16-12": 3,
+          "16-13": 2,
+          "16-14": 2,
+          "16-15": 2,
+          "16-16": 2,
+          "16-17": 1,
+          "16-18": 3
+        },
+        "translationFragmentedFrames": [],
+        "skeleton": {
+          "hasBiblicalInterpretation": true,
+          "hasTheologicalDialogue": true,
+          "hasPersonalReflection": true,
+          "hasCommunityStudyInline": true,
+          "hasMovement2Tx": true,
+          "hasMovement3Tx": true,
+          "hasMovement4Tx": true,
+          "hasMovement5Tx": true,
+          "hasConclusionTx": true
+        },
+        "reference": {
+          "frameCount": 18,
+          "observationFrameCount": 18,
+          "discourseCount": 4,
+          "discourseCountDelta": 0
+        }
+      },
+      "converted": {
+        "frameCount": 18,
+        "observationFrames": 12,
+        "discourseCount": 4
+      },
+      "reference": {
+        "frameCount": 18,
+        "observationFrames": 18,
+        "discourseCount": 4
+      }
+    }
+  ]
+}
