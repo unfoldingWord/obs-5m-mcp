@@ -681,7 +681,7 @@ function parseDiscourseMd(
   // Prefer Indonesian (or source) lead-in before first discourse question.
   // Do not require a fixed second word after Apa/Apakah/Bagaimana — PDF
   // wording varies ("Apakah pola…", "Bagaimana Allah…", "Hal-hal apa…").
-  let intro = fallbackIntro;
+  let intro: string = fallbackIntro;
   const firstQ = reflowed.search(
     /(?:Bagaimana|Apa|Apakah|Mengapa|Siapa|Siapakah|Hal-hal|What|How|Why|Who)\b[\s\S]{0,320}?\?\s*(?:[^?]{0,240}\?\s*)*\(\d{2}-\d{2}/i,
   );
