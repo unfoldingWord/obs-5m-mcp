@@ -16,31 +16,36 @@ import {
 
 const root = path.join(path.dirname(fileURLToPath(import.meta.url)), "../..");
 
-function loadStory2Input(): string {
+function tryLoadStory2Input(): string | null {
   const plain = path.join(root, "exports/pdf-plain-md/OBS_2_Indonesia.plain.md");
   if (existsSync(plain)) {
     return stripYamlFrontmatter(readFileSync(plain, "utf8"));
   }
-  return readFileSync(path.join(root, "data/indonesian-text/02.txt"), "utf8");
+  const txt = path.join(root, "data/indonesian-text/02.txt");
+  if (existsSync(txt)) return readFileSync(txt, "utf8");
+  return null;
 }
 
 describe("pdfToObsTfMd + structure compare", () => {
-  const pdfText = loadStory2Input();
+  const pdfText = tryLoadStory2Input();
   const dcsMd = readFileSync(
     path.join(root, "tests/fixtures/en_obs_tf/obs_story_1.md"),
     "utf8",
   );
+  const describeStory2 = pdfText ? describe : describe.skip;
 
   it("strips YAML frontmatter from plain MD", () => {
     const raw = "---\ntitle: x\n---\n\n0.1 Pokok Pikiran Utama\nHello\n";
     expect(stripYamlFrontmatter(raw)).toBe("0.1 Pokok Pikiran Utama\nHello\n");
   });
 
+  describeStory2("story 2 conversion (needs local PDF extract)", () => {
+    const text = pdfText as string;
   it("converts story 2 with inline community + shared movement TX links", () => {
     const { storyMarkdown, transclusions } = convertPdfTextToObsTfMd({
       language: "id",
       storyNum: 2,
-      pdfText,
+      pdfText: text,
       dcsReferenceMd: dcsMd.replace(/story_num: 1/, "story_num: 2"),
     });
     const parsed = parseObsTfStoryMarkdown(storyMarkdown);
@@ -69,7 +74,7 @@ describe("pdfToObsTfMd + structure compare", () => {
     const { storyMarkdown } = convertPdfTextToObsTfMd({
       language: "id",
       storyNum: 2,
-      pdfText,
+      pdfText: text,
       dcsReferenceMd: dcsMd,
     });
     // Story 1 DCS images won't match 02-xx ids; ensure converter still emits frames
@@ -81,7 +86,7 @@ describe("pdfToObsTfMd + structure compare", () => {
     const { storyMarkdown } = convertPdfTextToObsTfMd({
       language: "id",
       storyNum: 2,
-      pdfText,
+      pdfText: text,
     });
     const stripped = storyMarkdown.replace(
       /### (?:Observation Questions|Pertanyaan[- ]*Pertanyaan(?:-)?\s*Observasi|2\.1\b)[^\n]*[\s\S]*?(?=### (?:Translation Questions|Pertanyaan[- ]*Pertanyaan(?:-)?\s*(?:Penerjemahan|terjemahan)|2\.2\b))/i,
@@ -104,11 +109,12 @@ describe("pdfToObsTfMd + structure compare", () => {
     const { storyMarkdown } = convertPdfTextToObsTfMd({
       language: "id",
       storyNum: 2,
-      pdfText,
+      pdfText: text,
     });
     const cmp = compareStructures(storyMarkdown, storyMarkdown, map);
     expect(cmp.ok).toBe(true);
     expect(cmp.converted.hasCommunityStudy).toBe(true);
+  });
   });
 
   it("loads structure map: Indonesian ids mapped to English titles/positions", () => {
@@ -128,10 +134,9 @@ describe("pdfToObsTfMd + structure compare", () => {
   });
 
   it("does not treat bare page numbers as community/biblical cues", () => {
-    const txt = readFileSync(
-      path.join(root, "data/indonesian-text/03.txt"),
-      "utf8",
-    );
+    const txtPath = path.join(root, "data/indonesian-text/03.txt");
+    if (!existsSync(txtPath)) return;
+    const txt = readFileSync(txtPath, "utf8");
     const { storyMarkdown, transclusions } = convertPdfTextToObsTfMd({
       language: "id",
       storyNum: 3,
