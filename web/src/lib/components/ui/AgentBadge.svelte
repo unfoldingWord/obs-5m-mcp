@@ -14,7 +14,7 @@
 		guide: {
 			label: 'Ezer',
 			icon: Compass,
-			classes: 'border-sky-300 bg-sky-50 text-sky-800'
+			classes: 'border-[#c5d9ce] bg-[var(--sage-soft)] text-[var(--sage-deep)]'
 		},
 		scholar: {
 			label: 'Scholar',

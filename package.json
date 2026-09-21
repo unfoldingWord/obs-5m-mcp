@@ -8,7 +8,7 @@
     "dev": "wrangler dev --port 8790",
     "dev:web": "npm run dev --prefix web",
     "build:web": "npm run build --prefix web",
-    "deploy": "wrangler deploy",
+    "deploy": "npm run build:web && wrangler deploy",
     "deploy:with-web": "npm run build:web && wrangler deploy",
     "typecheck": "tsc --noEmit",
     "test": "vitest run",
@@ -17,6 +17,7 @@
     "test:contracts": "vitest run tests/contracts/",
     "test:ci": "vitest run --reporter=dot",
     "test:smoke": "tsx scripts/smoke-mcp.ts",
+    "test:chat-eval": "tsx scripts/eval-chat.ts",
     "ingest:id": "tsx scripts/ingest-indonesian-pdfs.ts",
     "convert:id": "tsx scripts/convert-pdf-to-md.ts",
     "convert:id:from-pdf": "tsx scripts/convert-pdf-to-md.ts --from-pdf",
@@ -26,7 +27,7 @@
     "prepare": "node -e \"process.exit(0)\""
   },
   "dependencies": {
-    "@modelcontextprotocol/sdk": "^1.15.1",
+    "@modelcontextprotocol/sdk": "1.15.1",
     "agents": "^0.0.97",
     "fflate": "^0.8.3",
     "pdfjs-dist": "^5.6.205",

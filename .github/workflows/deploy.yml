@@ -20,7 +20,10 @@ jobs:
           cache: npm
 
       - name: Install deps
-        run: npm ci
+        run: npm ci && npm ci --prefix web
+
+      - name: Build Svelte chat
+        run: npm run build:web
 
       - name: Deploy Worker
         uses: cloudflare/wrangler-action@v3

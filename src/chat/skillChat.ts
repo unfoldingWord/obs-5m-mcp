@@ -1,5 +1,5 @@
 /**
- * OBS skillChat — Ezer coach router (TH-style architecture, OBS-shaped paths).
+ * OBS skillChat — chat router (TH-style, OBS-shaped paths).
  *
  * Paths:
  *   I  — intro greeting (intent=intro)
@@ -86,6 +86,42 @@ async function callTool(
   const parsed = tool.inputSchema.parse(args);
   const result = await tool.handler(parsed as never, env, crypto.randomUUID());
   return result.structuredContent ?? { content: result.content };
+}
+
+async function fetchStudyPartMd(
+  env: Env,
+  story: number,
+  language: string,
+  part: string,
+): Promise<{ md: string; ok: boolean }> {
+  try {
+    const raw = await callTool(
+      "fetch_obs_study_manual",
+      {
+        reference: String(story),
+        language,
+        part,
+        format: "md",
+      },
+      env,
+    );
+    const obj = raw as Record<string, unknown>;
+    if (typeof obj.content === "string" && obj.content.trim()) {
+      return { md: obj.content, ok: true };
+    }
+    if (obj.available === false) {
+      return {
+        md: `Resource not available: ${String(obj.message ?? "unknown")}`,
+        ok: false,
+      };
+    }
+    return { md: JSON.stringify(raw).slice(0, 8_000), ok: false };
+  } catch (err) {
+    return {
+      md: `Tool error: ${err instanceof Error ? err.message : String(err)}`,
+      ok: false,
+    };
+  }
 }
 
 async function streamLlmText(
@@ -202,35 +238,46 @@ export async function answerStream(
     emit.meta?.({ setWorkflowMode: intent.mode });
   }
 
-  // Path S — story focus
+  // Path S — story focus (fetch intro from MCP, then orient)
   if (intent.kind === "story") {
-    session = { ...session, story: intent.story };
-    emit.meta?.({ setStory: intent.story });
-    emit.status(`Focusing OBS story ${intent.story}…`);
-    const result = await runAgenticChat({
-      client,
+    session = { ...session, story: intent.story, part: "intro" };
+    emit.meta?.({ setStory: intent.story, setPart: "intro" });
+    emit.status(`Loading story ${intent.story} intro from MCP…`);
+    const fetched = await fetchStudyPartMd(
       env,
-      history: [
-        ...history.slice(0, -1),
-        {
-          role: "user",
-          content:
-            `We switched to OBS story ${intent.story} (language ${session.language}). ` +
-            `Call fetch_obs_study_manual with reference="${intent.story}", language="${session.language}", part="intro", format="md". ` +
-            `Confirm the story title from the markdown, give a 2-sentence orientation, then ask whether to open Community Study, Movement 1, or the full formatted lesson (part=full format=md).`,
-        },
-      ],
-      tools,
-      systemPrompt: buildSystemPrompt(session),
-      onStatus: emit.status,
-    });
-    emit.status("Writing…");
-    for (const chunk of chunkText(result.text || "", 48)) emit.token(chunk);
+      intent.story,
+      session.language,
+      "intro",
+    );
+    const role = parseSessionRole(session.role);
+    const system = [
+      buildSystemPrompt(session),
+      "",
+      "You have OBS study-manual intro markdown below (already fetched via fetch_obs_study_manual).",
+      role === "member"
+        ? "Confirm the story title from the markdown, give a 2-sentence orientation for a group member, then ask whether to open Community Study, Movement 1, or the full lesson."
+        : "Confirm the story title from the markdown, give a 2-sentence leader orientation, then ask whether to open Community Study, Movement 1, or the full lesson.",
+      "Quote Key Idea / Creedal Verse / Metanarrative from the markdown. Do not invent them.",
+      "",
+      "INTRO_MARKDOWN:",
+      fetched.md.slice(0, 40_000),
+    ].join("\n");
+    const text = await streamLlmText(client, system, message, emit, 1_200);
     emit.done({
-      response: result.text,
+      response: text,
       intent: "story",
       story: intent.story,
-      toolCalls: result.toolCalls,
+      part: "intro",
+      toolCalls: [
+        {
+          name: "fetch_obs_study_manual",
+          ok: fetched.ok,
+          ms: 0,
+          summary: fetched.ok
+            ? `intro md (${fetched.md.length} chars)`
+            : "intro fetch failed",
+        },
+      ],
       agent: AGENT_NAME,
     });
     return;
@@ -345,35 +392,49 @@ export async function answerStream(
     return;
   }
 
-  // Path P — facilitate a part
+  // Path P — facilitate a part (always fetch MCP first; do not rely on the LLM to tool-call)
   if (intent.kind === "part") {
     session = { ...session, part: intent.part };
     emit.meta?.({ setPart: intent.part });
-    emit.status(`Opening ${intent.part}…`);
+    emit.status(`Fetching ${intent.part} from MCP…`);
+    const fetched = await fetchStudyPartMd(
+      env,
+      session.story,
+      session.language,
+      intent.part,
+    );
+    const role = parseSessionRole(session.role);
     const directive = partFacilitationInstruction(
       intent.part,
       session.story,
       session.language,
-      parseSessionRole(session.role),
+      role,
     );
-    const result = await runAgenticChat({
-      client,
-      env,
-      history: [
-        ...history.slice(0, -1),
-        { role: "user", content: `${message}\n\n(${directive})` },
-      ],
-      tools,
-      systemPrompt: buildSystemPrompt(session, directive),
-      onStatus: emit.status,
-    });
-    emit.status("Writing…");
-    for (const chunk of chunkText(result.text || "", 40)) emit.token(chunk);
+    const system = [
+      buildSystemPrompt(session, directive),
+      "",
+      "You have OBS study-manual markdown below (already fetched via fetch_obs_study_manual).",
+      "Present it. Quote exact questions and wording. Do not invent content.",
+      "",
+      "PART_MARKDOWN:",
+      fetched.md.slice(0, 90_000),
+    ].join("\n");
+    const text = await streamLlmText(client, system, message, emit, 2_400);
     emit.done({
-      response: result.text,
+      response: text,
       intent: "part",
       part: intent.part,
-      toolCalls: result.toolCalls,
+      story: session.story,
+      toolCalls: [
+        {
+          name: "fetch_obs_study_manual",
+          ok: fetched.ok,
+          ms: 0,
+          summary: fetched.ok
+            ? `${intent.part} md (${fetched.md.length} chars)`
+            : `${intent.part} fetch failed`,
+        },
+      ],
       agent: AGENT_NAME,
     });
     return;

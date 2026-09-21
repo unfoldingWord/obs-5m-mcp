@@ -268,7 +268,8 @@ export function buildStudyManualPayload(
             }
           : {
               kind: "dcs",
-              repo: `${bundle.language}_obs_tf`,
+              owner: bundle.dcsRepo?.owner ?? "unfoldingWord",
+              repo: bundle.dcsRepo?.repo ?? "unknown",
               storyPath: `obs_story_${ref.story}.md`,
               catalog: {
                 subject: "OBS Theological Formation",
@@ -284,7 +285,9 @@ export function buildStudyManualPayload(
                 "obs-devotionals-unit-*",
               ],
               license: "CC BY-SA 4.0",
-              door43: `https://git.door43.org/unfoldingWord/${bundle.language}_obs_tf`,
+              door43: bundle.dcsRepo
+                ? `https://git.door43.org/${bundle.dcsRepo.owner}/${bundle.dcsRepo.repo}`
+                : undefined,
             },
   };
 }

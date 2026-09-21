@@ -1,4 +1,4 @@
-import adapter from '@sveltejs/adapter-cloudflare';
+import adapter from '@sveltejs/adapter-static';
 import { vitePreprocess } from '@sveltejs/vite-plugin-svelte';
 
 /** Root-mounted on the obs-5m Worker (no /v2 prefix). */
@@ -8,14 +8,20 @@ const BASE_PATH = process.env.BASE_PATH === undefined ? '' : process.env.BASE_PA
 const config = {
 	preprocess: vitePreprocess(),
 	kit: {
+		// Static assets only. The Worker owns /api/chat, /mcp, /docs, /.
+		// Avoids adapter-cloudflare rimraf EBUSY on Windows.
 		adapter: adapter({
-			// Disable platformProxy during `vite build` — workerd locks
-			// `.svelte-kit/cloudflare` on Windows and breaks adapter rimraf (EBUSY).
-			// Local `vite dev` still works without it; use `wrangler dev` for bindings.
-			platformProxy: {
-				enabled: false
-			}
+			// `build/` is often locked by wrangler --port 8790 on Windows.
+			pages: 'dist',
+			assets: 'dist',
+			fallback: undefined,
+			precompress: false,
+			strict: true
 		}),
+		prerender: {
+			// Worker-owned routes (/docs, /mcp, /debug, /) are not Svelte pages.
+			handleHttpError: 'warn'
+		},
 		paths: {
 			base: BASE_PATH,
 			relative: false

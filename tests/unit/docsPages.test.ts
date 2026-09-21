@@ -15,8 +15,9 @@ describe("docs pages", () => {
     expect(html).toContain("fetch_obs_study_manual");
     expect(html).toContain("sessionFlow");
     expect(html).toContain('part": "checking"');
-    expect(html).toContain("Why this helps users");
+    expect(html).toContain("Agent rules");
     expect(html).toContain("drafting");
+    expect(html).toContain('"url": "http://localhost:8790/mcp"');
   });
 
   it("api discovery includes docs URL", () => {

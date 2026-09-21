@@ -1,7 +1,6 @@
 <script lang="ts">
 	/**
-	 * Ezer chat for OBS Five Movements — same UI shell as Translation Helps
-	 * (ChatDock + feed + X-ray), with OBS skillChat router underneath.
+	 * Chat UI for OBS-TF MCP — ChatDock + feed + X-ray, with skillChat underneath.
 	 */
 	import { tick, onMount } from 'svelte';
 	import Zap from 'lucide-svelte/icons/zap';
@@ -19,6 +18,11 @@
 	} from '$lib/stores/studySession.js';
 	import { parseWorkflowMode, type WorkflowMode } from '$lib/obs/workflowMode.js';
 	import { parseSessionRole, type SessionRole } from '$lib/obs/sessionRole.js';
+	import {
+		fetchCatalogLanguages,
+		pickAvailableLanguage,
+		type CatalogLanguage
+	} from '$lib/obs/catalogLanguages.js';
 
 	interface ToolCallTrace {
 		tool: string;
@@ -46,7 +50,9 @@
 	let xrayOpen = false;
 	let xrayReport = '';
 	let xrayEventCount = 0;
-	let resourcesOpen = true;
+	let resourcesOpen = false;
+	let prefsReady = false;
+	let statusText = '';
 	let feedEl: HTMLElement | null = null;
 
 	$: session = $studySession;
@@ -56,10 +62,7 @@
 	$: language = session.targetLanguage;
 	$: story = session.story;
 
-	const languages = [
-		{ code: 'en', name: 'English' },
-		{ code: 'id', name: 'Indonesian' }
-	];
+	let languages: CatalogLanguage[] = [];
 
 	onMount(() => {
 		try {
@@ -83,13 +86,36 @@
 		} catch {
 			/* ignore */
 		}
-		void tick().then(() => requestIntroGreeting());
+		// Desktop keeps the session rail open; on narrow viewports it is a sheet
+		// that covers the greeting — start closed there.
+		if (window.matchMedia('(min-width: 1024px)').matches) {
+			resourcesOpen = true;
+		}
+		prefsReady = true;
+		void (async () => {
+			try {
+				const catalog = await fetchCatalogLanguages();
+				if (catalog.length) {
+					languages = catalog;
+					const next = pickAvailableLanguage(sourceLanguage, catalog);
+					if (next !== sourceLanguage) setLanguagePair(next, next);
+					else if (!catalog.some((l) => l.code === language)) {
+						setLanguagePair(sourceLanguage, next);
+					}
+				}
+			} catch {
+				/* picker keeps the session language until catalog is reachable */
+			}
+			await tick();
+			await requestIntroGreeting();
+		})();
 	});
 
 	/** Stream Ezer's intro (TH-style intent=intro; no user bubble). */
 	async function requestIntroGreeting() {
 		if (isLoading || messages.length) return;
 		isLoading = true;
+		statusText = 'Greeting…';
 		const t0 = Date.now();
 		messages = [{ role: 'assistant', content: '' }];
 		try {
@@ -137,6 +163,7 @@
 			];
 		} finally {
 			isLoading = false;
+			statusText = '';
 			await scrollToBottom();
 		}
 	}
@@ -186,6 +213,9 @@
 					data = JSON.parse(dataLine) as Record<string, unknown>;
 				} catch {
 					continue;
+				}
+				if (event === 'status') {
+					statusText = String(data.text || data.message || '');
 				}
 				if (event === 'meta') {
 					applyMeta(data);
@@ -258,7 +288,15 @@
 		);
 	}
 
-	$: model, xrayEnabled, story, sourceLanguage, workflowMode, sessionRole, persistPrefs();
+	$: if (prefsReady) {
+		void model;
+		void xrayEnabled;
+		void story;
+		void sourceLanguage;
+		void workflowMode;
+		void sessionRole;
+		persistPrefs();
+	}
 
 	async function scrollToBottom() {
 		await tick();
@@ -282,6 +320,7 @@
 		messages = [...messages, userMsg];
 		await scrollToBottom();
 		isLoading = true;
+		statusText = 'Calling MCP…';
 		const t0 = Date.now();
 		const history = outboundHistory();
 		const assistantIdx = messages.length;
@@ -318,6 +357,7 @@
 			messages = messages;
 		} finally {
 			isLoading = false;
+			statusText = '';
 			await scrollToBottom();
 		}
 	}
@@ -347,60 +387,89 @@
 </script>
 
 <svelte:head>
-	<title>Ezer · OBS Five Movements</title>
+	<title>Chat demo · OBS-TF MCP</title>
 </svelte:head>
 
-<div class="flex flex-col bg-slate-950 text-slate-100" style="height: var(--vvh, 100dvh)">
+<div class="flex flex-col text-[var(--ink)]" style="height: var(--vvh, 100dvh)">
 	<header
-		class="flex shrink-0 items-center gap-3 border-b border-slate-800 bg-slate-950/90 px-3 py-2 backdrop-blur"
+		class="flex shrink-0 flex-wrap items-center gap-3 border-b border-[var(--line)] bg-[color-mix(in_srgb,var(--paper)_90%,transparent)] px-[clamp(1rem,3vw,1.5rem)] py-3 backdrop-blur-[12px]"
 	>
-		<div class="min-w-0 flex-1">
-			<h1 class="text-sm font-semibold tracking-tight text-white">Ezer</h1>
-			<p class="truncate text-[11px] text-slate-500">
-				Helper for OBS Five Movements · formation for translation communities
-				<a class="ml-1 text-sky-400 hover:underline" href={withBase('/docs')}>Docs</a>
-			</p>
-		</div>
-		<button
-			type="button"
-			class="hidden rounded-full border border-slate-700 px-2.5 py-1 text-xs text-slate-300 hover:border-sky-500 lg:inline-flex"
-			class:border-sky-500={resourcesOpen}
-			class:text-sky-200={resourcesOpen}
-			on:click={() => (resourcesOpen = !resourcesOpen)}
+		<a
+			href={withBase('/')}
+			class="font-[family-name:var(--font-display)] text-xl font-bold tracking-tight text-[var(--ink)] no-underline"
+			>OBS-TF MCP</a
 		>
-			Session
-		</button>
+		<p class="min-w-0 truncate text-sm text-[var(--muted)]">Demo client · uses this MCP</p>
+		<nav class="ml-auto flex items-center gap-4 text-sm font-medium">
+			<a class="text-[var(--ink-soft)] no-underline hover:text-[var(--sage-deep)]" href={withBase('/docs')}
+				>Guide</a
+			>
+			<a class="text-[var(--ink-soft)] no-underline hover:text-[var(--sage-deep)]" href={withBase('/mcp')}
+				>MCP</a
+			>
+			<a class="text-[var(--ink-soft)] no-underline hover:text-[var(--sage-deep)]" href={withBase('/debug')}
+				>X-ray</a
+			>
+			<a class="text-[var(--ink-soft)] no-underline hover:text-[var(--sage-deep)]" href={withBase('/')}
+				>Home</a
+			>
+			<button
+				type="button"
+				class="hidden rounded-[6px] border border-[var(--line)] bg-white px-2.5 py-1 text-xs text-[var(--ink)] hover:border-[var(--sage)] lg:inline-flex"
+				class:border-[var(--sage)]={resourcesOpen}
+				class:bg-[var(--sage-soft)]={resourcesOpen}
+				on:click={() => (resourcesOpen = !resourcesOpen)}
+			>
+				Session
+			</button>
+		</nav>
 	</header>
 
 	<div class="flex min-h-0 flex-1">
 		<div class="flex min-w-0 flex-1 flex-col">
-			<div bind:this={feedEl} class="min-h-0 flex-1 space-y-3 overflow-y-auto px-3 py-3 sm:px-4">
+			<div
+				bind:this={feedEl}
+				class="mx-auto flex min-h-0 w-full max-w-[46rem] flex-1 flex-col gap-3 overflow-y-auto px-4 py-4"
+			>
 				{#each messages as msg, i (i)}
+					{@const isWelcome = i === 0 && msg.role === 'assistant'}
 					<div class="flex {msg.role === 'user' ? 'justify-end' : 'justify-start'}">
 						<div
-							class="max-w-[92%] rounded-2xl px-3.5 py-2.5 text-sm leading-relaxed sm:max-w-[85%]
-								{msg.role === 'user'
-								? 'bg-sky-950/80 text-sky-50'
-								: 'border border-slate-800 bg-slate-900/80 text-slate-100'}"
+							class="max-w-[92%] px-4 py-3 text-[0.98rem] leading-relaxed
+								{isWelcome
+								? 'welcome-card'
+								: msg.role === 'user'
+									? 'rounded-lg border border-[#c5d9ce] bg-[var(--user)] text-[var(--ink)]'
+									: 'rounded-lg border border-[var(--line)] bg-white shadow-[0_1px_0_color-mix(in_srgb,var(--ink)_4%,transparent)]'}"
 						>
 							{#if msg.role === 'assistant'}
-								<div class="mb-1.5 flex items-center gap-1.5">
-									<AgentBadge agent="guide" />
-									{#if msg.model}
-										<span class="text-[10px] text-slate-500">{msg.model}</span>
-									{/if}
-									{#if msg.latencyMs}
-										<span class="text-[10px] text-slate-600">{msg.latencyMs}ms</span>
-									{/if}
-								</div>
+								{#if !isWelcome}
+									<div class="mb-1.5 flex items-center gap-1.5">
+										<AgentBadge agent="guide" />
+										{#if msg.model}
+											<span class="font-mono text-[10px] text-[var(--muted)]">{msg.model}</span>
+										{/if}
+										{#if msg.latencyMs}
+											<span class="text-[10px] text-[var(--muted)]">{msg.latencyMs}ms</span>
+										{/if}
+									</div>
+								{/if}
 								<div class="prose-chat">{@html htmlFor(msg.content)}</div>
 								{#if msg.toolCalls?.length}
-									<div class="mt-2 border-t border-slate-800 pt-1.5 text-[10px] text-slate-500">
+									<div
+										class="tools mt-2 border-t border-[var(--line)] pt-1.5 font-mono text-[11px] text-[var(--muted)]"
+									>
 										Tools:
 										{#each msg.toolCalls as t}
-											<span class="mr-1.5 inline-flex items-center gap-0.5">
-												<Zap size={10} />
-												{t.tool}{t.ok ? '' : '✗'}
+											<span
+												class="mr-1.5 inline-flex items-center gap-0.5"
+												title={t.summary || t.tool}
+											>
+												<Zap size={10} class={t.ok ? 'text-[var(--sand)]' : 'text-rose-600'} />
+												{t.tool}{t.ok ? '' : ' ✗'}
+												{#if t.summary}
+													<span class="max-w-[12rem] truncate">· {t.summary}</span>
+												{/if}
 											</span>
 										{/each}
 									</div>
@@ -412,23 +481,25 @@
 					</div>
 				{/each}
 				{#if isLoading}
-					<div class="text-center text-xs text-amber-300/90">Working…</div>
+					<div class="self-center text-xs text-[var(--status)]">
+						{statusText || 'Working…'}
+					</div>
 				{/if}
 			</div>
 
 			{#if xrayOpen && xrayEnabled && xrayReport}
-				<div class="max-h-56 shrink-0 overflow-auto border-t border-slate-800 bg-slate-950">
-					<div class="flex items-center justify-between border-b border-slate-800 px-3 py-1.5">
-						<span class="text-[11px] font-semibold tracking-wide text-slate-400 uppercase"
+				<div class="max-h-56 shrink-0 overflow-auto border-t border-[var(--line)] bg-white">
+					<div class="flex items-center justify-between border-b border-[var(--line)] px-3 py-1.5">
+						<span class="text-[11px] font-semibold tracking-wide text-[var(--muted)] uppercase"
 							>X-ray</span
 						>
 						<button
 							type="button"
-							class="text-[11px] text-slate-500 hover:text-white"
+							class="text-[11px] text-[var(--muted)] hover:text-[var(--ink)]"
 							on:click={() => (xrayOpen = false)}>Close</button
 						>
 					</div>
-					<pre class="whitespace-pre-wrap p-3 font-mono text-[10px] leading-relaxed text-slate-400"
+					<pre class="whitespace-pre-wrap p-3 font-mono text-[11px] leading-relaxed text-[var(--muted)]"
 						>{xrayReport}</pre
 					>
 				</div>
@@ -496,7 +567,7 @@
 
 	<!-- Mobile session sheet -->
 	{#if resourcesOpen}
-		<div class="fixed inset-0 z-40 bg-black/50 lg:hidden" on:click={() => (resourcesOpen = false)} on:keydown={() => {}} role="presentation"></div>
+		<div class="fixed inset-0 z-40 bg-[color-mix(in_srgb,var(--ink)_35%,transparent)] lg:hidden" on:click={() => (resourcesOpen = false)} on:keydown={() => {}} role="presentation"></div>
 		<div class="fixed inset-y-0 right-0 z-50 w-[min(100%,20rem)] lg:hidden">
 			<SessionSidePanel
 				{story}

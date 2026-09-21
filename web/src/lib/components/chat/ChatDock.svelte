@@ -101,7 +101,7 @@
 
 	const modeMeta: Record<WorkflowMode, { labelEn: string; Icon: typeof BookMarked }> = {
 		study: { labelEn: 'Study', Icon: BookMarked },
-		translate: { labelEn: 'Translate', Icon: PenLine },
+		translate: { labelEn: 'Draft', Icon: PenLine },
 		check: { labelEn: 'Check', Icon: ClipboardCheck }
 	};
 
@@ -195,15 +195,15 @@
 </script>
 
 <div
-	class="shrink-0 border-t border-slate-800 bg-slate-950/95 backdrop-blur-md"
+	class="shrink-0 border-t border-[var(--line)] bg-white/92 backdrop-blur-[14px]"
 	style="padding-bottom: env(safe-area-inset-bottom, 0px)"
 >
-	<div class="px-2.5 py-2 sm:px-3 sm:py-2.5">
+	<div class="mx-auto max-w-[46rem] px-2.5 py-2 sm:px-3 sm:py-2.5">
 		<!-- Controls row: quiet mode control + scope + resources + language pair.
 		     Conversation drives the mode; this control is a secondary affordance. -->
-		<div class="mb-1.5 flex items-center gap-1.5">
+		<div class="mb-1.5 flex flex-wrap items-center gap-1.5">
 			<div
-				class="inline-flex shrink-0 items-center rounded-md border border-slate-800 bg-slate-900/50 p-px"
+				class="inline-flex shrink-0 items-center rounded-[6px] border border-[var(--line)] bg-[#eef1f3] p-[2px]"
 				role="tablist"
 				aria-label="Session role"
 			>
@@ -218,12 +218,10 @@
 						title={sessionRoleHint(role)}
 						aria-label={sessionRoleLabel(role)}
 						on:click={() => dispatch('sessionRoleChange', role)}
-						class="flex items-center gap-1 rounded px-1.5 py-1 text-[10px] font-medium transition-colors disabled:opacity-50
+						class="flex items-center gap-1 rounded px-2 py-1 text-[11px] font-semibold transition-colors disabled:opacity-50
 							{active
-							? role === 'member'
-								? 'bg-violet-900/70 text-violet-200'
-								: 'bg-indigo-900/70 text-indigo-200'
-							: 'text-slate-500 hover:text-slate-300'}"
+							? 'bg-[var(--sage)] text-white'
+							: 'text-[var(--muted)] hover:text-[var(--ink)]'}"
 					>
 						<RoleIcon size={12} strokeWidth={2} />
 						<span class="hidden sm:inline">{sessionRoleLabel(role)}</span>
@@ -232,7 +230,7 @@
 			</div>
 
 			<div
-				class="inline-flex shrink-0 items-center rounded-md border border-slate-800 bg-slate-900/50 p-px"
+				class="inline-flex shrink-0 items-center rounded-[6px] border border-[var(--line)] bg-[#eef1f3] p-[2px]"
 				role="tablist"
 				aria-label="Workflow mode"
 			>
@@ -248,14 +246,10 @@
 						title={workflowModeHint(mode, 'en')}
 						aria-label={meta.labelEn}
 						on:click={() => dispatch('workflowModeChange', mode)}
-						class="flex items-center gap-1 rounded px-1.5 py-1 text-[10px] font-medium transition-colors disabled:opacity-50
+						class="flex items-center gap-1 rounded px-2 py-1 text-[11px] font-semibold transition-colors disabled:opacity-50
 							{active
-							? mode === 'check'
-								? 'bg-emerald-900/70 text-emerald-200'
-								: mode === 'translate'
-									? 'bg-amber-900/70 text-amber-200'
-									: 'bg-sky-900/70 text-sky-200'
-							: 'text-slate-500 hover:text-slate-300'}"
+							? 'bg-[var(--sage)] text-white'
+							: 'text-[var(--muted)] hover:text-[var(--ink)]'}"
 					>
 						<ModeIcon size={12} strokeWidth={2} />
 						<span class="hidden sm:inline">{meta.labelEn}</span>
@@ -263,15 +257,22 @@
 				{/each}
 			</div>
 
+			<span
+				class="hidden shrink-0 rounded-[6px] border border-[#c5d9ce] bg-[var(--sage-soft)] px-2.5 py-1 font-mono text-[11px] text-[var(--sage-deep)] md:inline"
+				title="Current story and study language"
+			>
+				Story {story} · {sourceLanguage.toUpperCase()}
+			</span>
+
 			{#if isResourceScoped && scope.kind === 'resource'}
 				<div
-					class="flex max-w-[55%] min-w-0 items-center gap-1 rounded-full border border-violet-700/60 bg-violet-950/50 px-2 py-0.5 text-xs text-violet-200 sm:max-w-[min(100%,20rem)]"
+					class="flex max-w-[55%] min-w-0 items-center gap-1 rounded-[6px] border border-[#c5d9ce] bg-[var(--sage-soft)] px-2 py-0.5 text-xs text-[var(--sage-deep)] sm:max-w-[min(100%,20rem)]"
 				>
 					<span class="truncate" title={scope.label}>{scope.label}</span>
 					<button
 						type="button"
 						on:click={handleClearScope}
-						class="shrink-0 rounded-full p-0.5 text-violet-400 hover:bg-violet-900 hover:text-white"
+						class="shrink-0 rounded-full p-0.5 text-[var(--muted)] hover:bg-white hover:text-[var(--ink)]"
 						title="Clear scope"
 						aria-label="Clear scope"
 					>
@@ -283,10 +284,10 @@
 			<button
 				type="button"
 				on:click={() => dispatch('openResources')}
-				class="inline-flex shrink-0 items-center gap-1 rounded-full border px-2.5 py-1 text-xs font-medium transition-colors lg:hidden
+				class="inline-flex shrink-0 items-center gap-1 rounded-[6px] border px-2.5 py-1 text-xs font-medium transition-colors lg:hidden
 					{resourcesOpen
-					? 'border-sky-500 bg-sky-950 text-sky-200'
-					: 'border-slate-600 bg-slate-900 text-slate-200 hover:border-sky-500 hover:text-white'}"
+					? 'border-[var(--sage)] bg-[var(--sage-soft)] text-[var(--sage-deep)]'
+					: 'border-[var(--line)] bg-white text-[var(--ink)] hover:border-[var(--sage)]'}"
 				title="OBS session parts"
 				aria-label="Open OBS session panel"
 				aria-pressed={resourcesOpen}
@@ -295,7 +296,7 @@
 				<span>Session</span>
 				{#if resourceCount > 0}
 					<span
-						class="rounded-full bg-sky-900/80 px-1.5 py-px text-[10px] font-semibold text-sky-200"
+						class="rounded-full bg-[var(--sage-soft)] px-1.5 py-px text-[10px] font-semibold text-[var(--sage-deep)]"
 					>
 						{resourceCount}
 					</span>
@@ -309,7 +310,7 @@
 					<button
 						type="button"
 						on:click={() => (langPickerOpen ? closeLangPicker() : openLangPicker('src'))}
-						class="inline-flex items-center gap-1 rounded-full border border-slate-700 bg-slate-800 px-2 py-1 font-mono text-[10px] tracking-wide text-slate-300 uppercase transition-colors hover:border-sky-500 hover:text-white"
+						class="chip-btn mono inline-flex items-center gap-1 rounded-[6px] border border-[var(--line)] bg-white px-2 py-1 font-mono text-[11px] tracking-wide text-[var(--ink)] uppercase transition-colors hover:border-[var(--sage)]"
 						title="Languages — study {sourceLanguage.toUpperCase()} → drafting {targetDisplay}"
 						aria-label="Change study or drafting language"
 						aria-expanded={langPickerOpen}
@@ -328,16 +329,16 @@
 							on:click={closeLangPicker}
 						></button>
 						<div
-							class="absolute right-0 bottom-full z-50 mb-1.5 w-72 overflow-hidden rounded-xl border border-slate-700 bg-slate-900 shadow-2xl"
+							class="absolute right-0 bottom-full z-50 mb-1.5 w-72 overflow-hidden rounded-lg border border-[var(--line)] bg-white shadow-[0_10px_32px_color-mix(in_srgb,var(--ink)_12%,transparent)]"
 							role="dialog"
 							aria-label="Language picker"
 						>
-							<div class="flex gap-1 border-b border-slate-800 p-1.5">
+							<div class="flex gap-1 border-b border-[var(--line)] p-1.5">
 								<button
 									type="button"
 									on:click={() => (langPickerSide = 'src')}
 									class="flex-1 rounded-md px-2 py-1 text-[11px] font-medium transition-colors
-										{langPickerSide === 'src' ? 'bg-sky-900/70 text-sky-200' : 'text-slate-400 hover:text-slate-200'}"
+										{langPickerSide === 'src' ? 'bg-[var(--sage-soft)] text-[var(--sage-deep)]' : 'text-[var(--muted)] hover:text-[var(--ink)]'}"
 									title="Source — scripture/helps + coach language"
 								>
 									Src · {sourceLanguage.toUpperCase()}
@@ -346,7 +347,7 @@
 									type="button"
 									on:click={() => (langPickerSide = 'tgt')}
 									class="flex-1 rounded-md px-2 py-1 text-[11px] font-medium transition-colors
-										{langPickerSide === 'tgt' ? 'bg-sky-900/70 text-sky-200' : 'text-slate-400 hover:text-slate-200'}"
+										{langPickerSide === 'tgt' ? 'bg-[var(--sage-soft)] text-[var(--sage-deep)]' : 'text-[var(--muted)] hover:text-[var(--ink)]'}"
 									title="Target — receptor language (optional; never required)"
 								>
 									Tgt · {targetDisplay}
@@ -360,7 +361,7 @@
 									on:keydown={handleLangFilterKey}
 									placeholder="Search languages…"
 									aria-label="Search languages"
-									class="w-full rounded-lg border border-slate-700 bg-slate-800 px-2 py-1.5 text-xs text-slate-100 placeholder-slate-500 focus:border-sky-500 focus:outline-none"
+									class="w-full rounded-md border border-[var(--line)] bg-white px-2 py-1.5 text-xs text-[var(--ink)] placeholder-[var(--muted)] focus:border-[var(--sage)] focus:outline-none"
 								/>
 							</div>
 							<div class="max-h-56 overflow-y-auto overscroll-contain px-1.5 pb-1.5">
@@ -370,17 +371,17 @@
 										type="button"
 										on:click={() => pickLanguage(opt.code)}
 										class="flex w-full items-baseline justify-between gap-2 rounded-md px-2 py-1.5 text-left text-xs transition-colors
-											{current ? 'bg-sky-950 text-sky-200' : 'text-slate-300 hover:bg-slate-800 hover:text-white'}"
+											{current ? 'bg-[var(--sage-soft)] text-[var(--sage-deep)]' : 'text-[var(--ink)] hover:bg-[var(--sage-soft)]'}"
 										aria-pressed={current}
 									>
 										<span class="truncate">{opt.name || opt.code}</span>
-										<span class="shrink-0 font-mono text-[10px] text-slate-500 uppercase"
+										<span class="shrink-0 font-mono text-[10px] text-[var(--muted)] uppercase"
 											>{opt.code}</span
 										>
 									</button>
 								{/each}
 								{#if filteredPickerOptions.length === 0}
-									<p class="px-2 py-3 text-xs text-slate-500">No languages match.</p>
+									<p class="px-2 py-3 text-xs text-[var(--muted)]">No languages match.</p>
 								{/if}
 							</div>
 						</div>
@@ -392,7 +393,7 @@
 					<button
 						type="button"
 						on:click={() => (modelPickerOpen = !modelPickerOpen)}
-						class="inline-flex items-center rounded-full border border-slate-700 bg-slate-800 px-2 py-1 font-mono text-[10px] text-slate-300 transition-colors hover:border-sky-500 hover:text-white"
+						class="inline-flex items-center rounded-[6px] border border-[var(--line)] bg-white px-2 py-1 font-mono text-[11px] text-[var(--ink)] transition-colors hover:border-[var(--sage)]"
 						title="Model — {model}"
 						aria-label="Change model"
 						aria-expanded={modelPickerOpen}
@@ -409,7 +410,7 @@
 							on:click={() => (modelPickerOpen = false)}
 						></button>
 						<div
-							class="absolute right-0 bottom-full z-50 mb-1.5 w-40 overflow-hidden rounded-xl border border-slate-700 bg-slate-900 p-1.5 shadow-2xl"
+							class="absolute right-0 bottom-full z-50 mb-1.5 w-40 overflow-hidden rounded-lg border border-[var(--line)] bg-white p-1.5 shadow-[0_10px_32px_color-mix(in_srgb,var(--ink)_12%,transparent)]"
 							role="listbox"
 							aria-label="Model"
 						>
@@ -420,7 +421,7 @@
 									aria-selected={opt === model}
 									on:click={() => pickModel(opt)}
 									class="block w-full rounded-md px-2 py-1.5 text-left font-mono text-xs transition-colors
-										{opt === model ? 'bg-sky-950 text-sky-200' : 'text-slate-300 hover:bg-slate-800 hover:text-white'}"
+										{opt === model ? 'bg-[var(--sage-soft)] text-[var(--sage-deep)]' : 'text-[var(--ink)] hover:bg-[var(--sage-soft)]'}"
 								>
 									{opt}
 								</button>
@@ -433,11 +434,12 @@
 					type="button"
 					on:click={() => dispatch('toggleXray')}
 					title="{xrayEnabled ? 'X-ray on' : 'Enable X-ray'} — pipeline trace"
-					class="hidden items-center gap-0.5 rounded p-1.5 text-slate-500 transition-colors hover:bg-slate-800 hover:text-slate-300 sm:inline-flex
-						{xrayActive ? 'text-sky-400' : xrayEnabled ? 'text-amber-400' : ''}"
+					class="hidden items-center gap-0.5 rounded-[6px] border border-[var(--line)] bg-white px-2 py-1 text-xs text-[var(--ink)] transition-colors hover:border-[var(--sage)] sm:inline-flex
+						{xrayActive || xrayEnabled ? 'border-[var(--sage)] bg-[var(--sage-soft)] text-[var(--sage-deep)]' : ''}"
 					aria-label="Toggle X-ray"
 				>
 					<Zap size={14} strokeWidth={2} />
+					<span>X-ray</span>
 					{#if xrayEventCount > 0}
 						<span class="text-xs">{xrayEventCount}</span>
 					{/if}
@@ -447,18 +449,18 @@
 					<button
 						type="button"
 						on:click={() => dispatch('clearChat')}
-						class="hidden rounded p-1.5 text-slate-500 transition-colors hover:bg-slate-800 hover:text-slate-300 sm:inline-flex"
+						class="hidden rounded-[6px] border border-[var(--line)] bg-white px-2 py-1 text-xs text-[var(--ink)] hover:border-[var(--sage)] sm:inline-flex"
 						title="Clear chat"
 						aria-label="Clear chat"
 					>
-						<X size={14} strokeWidth={2} />
+						Clear
 					</button>
 				{/if}
 
 				<button
 					type="button"
 					on:click={() => dispatch('resetSession')}
-					class="hidden rounded p-1.5 text-slate-500 transition-colors hover:bg-slate-800 hover:text-slate-300 sm:inline-flex"
+					class="hidden rounded-[6px] border border-[var(--line)] bg-white px-2 py-1 text-xs text-[var(--ink)] hover:border-[var(--sage)] sm:inline-flex"
 					title="Reset session"
 					aria-label="Reset session"
 				>
@@ -468,7 +470,7 @@
 				<!-- Mobile overflow for model / xray / clear -->
 				<button
 					type="button"
-					class="inline-flex rounded p-1.5 text-slate-400 hover:bg-slate-800 hover:text-white sm:hidden"
+					class="inline-flex rounded p-1.5 text-[var(--muted)] hover:bg-[var(--sage-soft)] hover:text-[var(--ink)] sm:hidden"
 					aria-label="More options"
 					aria-expanded={showMore}
 					on:click={() => (showMore = !showMore)}
@@ -480,7 +482,7 @@
 
 		{#if showMore}
 			<div
-				class="mb-1.5 flex flex-wrap items-center gap-1.5 rounded-lg border border-slate-800 bg-slate-900/80 px-2 py-1.5 sm:hidden"
+				class="mb-1.5 flex flex-wrap items-center gap-1.5 rounded-lg border border-[var(--line)] bg-white px-2 py-1.5 sm:hidden"
 			>
 				<div class="flex flex-wrap items-center gap-1" role="listbox" aria-label="Model">
 					{#each MODEL_OPTIONS as opt (opt)}
@@ -489,10 +491,10 @@
 							role="option"
 							aria-selected={opt === model}
 							on:click={() => (model = opt)}
-							class="rounded-full border px-2 py-1 font-mono text-[10px] transition-colors
+							class="rounded-[6px] border px-2 py-1 font-mono text-[10px] transition-colors
 								{opt === model
-								? 'border-sky-500 bg-sky-950 text-sky-200'
-								: 'border-slate-700 bg-slate-800 text-slate-400 hover:text-white'}"
+								? 'border-[var(--sage)] bg-[var(--sage-soft)] text-[var(--sage-deep)]'
+								: 'border-[var(--line)] bg-white text-[var(--muted)] hover:text-[var(--ink)]'}"
 						>
 							{opt}
 						</button>
@@ -501,8 +503,8 @@
 				<button
 					type="button"
 					on:click={() => dispatch('toggleXray')}
-					class="inline-flex items-center gap-0.5 rounded px-2 py-1 text-xs text-slate-400
-						{xrayActive ? 'text-sky-400' : xrayEnabled ? 'text-amber-400' : ''}"
+					class="inline-flex items-center gap-0.5 rounded px-2 py-1 text-xs text-[var(--muted)]
+						{xrayActive || xrayEnabled ? 'text-[var(--sage-deep)]' : ''}"
 				>
 					<Zap size={12} strokeWidth={2} />
 					X-ray
@@ -517,7 +519,7 @@
 							showMore = false;
 							dispatch('clearChat');
 						}}
-						class="rounded px-2 py-1 text-xs text-slate-400 hover:text-white"
+						class="rounded px-2 py-1 text-xs text-[var(--muted)] hover:text-[var(--ink)]"
 					>
 						Clear chat
 					</button>
@@ -528,7 +530,7 @@
 						showMore = false;
 						dispatch('resetSession');
 					}}
-					class="rounded px-2 py-1 text-xs text-slate-400 hover:text-white"
+					class="rounded px-2 py-1 text-xs text-[var(--muted)] hover:text-[var(--ink)]"
 				>
 					Reset session
 				</button>
@@ -536,7 +538,7 @@
 		{/if}
 
 		<!-- Quick actions: single horizontal scroll on mobile -->
-		{#if quickChips.length > 0 && hasMessages}
+		{#if quickChips.length > 0}
 			<div
 				class="-mx-0.5 mb-1.5 flex [scrollbar-width:none] gap-1.5 overflow-x-auto px-0.5 pb-0.5 [-ms-overflow-style:none] sm:flex-wrap [&::-webkit-scrollbar]:hidden"
 			>
@@ -545,7 +547,7 @@
 						type="button"
 						disabled={isLoading}
 						on:click={() => handleChip(chip)}
-						class="shrink-0 rounded-full border border-slate-700 bg-slate-900/60 px-2.5 py-1 text-[11px] text-slate-300 transition-colors disabled:opacity-40"
+						class="shrink-0 rounded-[6px] border border-[var(--line)] bg-transparent px-2.5 py-1 text-[11px] text-[var(--muted)] transition-colors hover:border-[var(--sage)] hover:text-[var(--ink)] disabled:opacity-40"
 					>
 						{chip.label}
 					</button>
@@ -554,28 +556,30 @@
 		{/if}
 
 		<!-- Input row -->
-		<div class="flex gap-2">
+		<div class="flex items-end gap-2">
 			<textarea
 				bind:value={input}
 				on:keydown={handleKey}
 				on:focus={() => dispatch('inputFocus')}
 				on:blur={() => dispatch('inputBlur')}
-				placeholder={isResourceScoped ? 'Ask about this…' : 'Ask Ezer about this story…'}
-				rows="1"
-				class="max-h-28 min-h-[2.5rem] flex-1 resize-none rounded-2xl border border-slate-700 bg-slate-800 px-3 py-2.5 text-base text-slate-100 placeholder-slate-500 focus:border-sky-500 focus:ring-1 focus:ring-sky-500 focus:outline-none sm:text-sm"
+				placeholder={isResourceScoped
+					? 'Ask about this…'
+					: 'Where should we begin? e.g. “Open observation for story 1, frame 2”'}
+				rows="2"
+				class="max-h-32 min-h-[2.7rem] flex-1 resize-y rounded-[6px] border border-[var(--line)] bg-white px-3 py-2.5 text-base text-[var(--ink)] placeholder-[var(--muted)] focus:border-[var(--sage)] focus:ring-2 focus:ring-[color-mix(in_srgb,var(--sage)_35%,transparent)] focus:outline-none sm:text-sm"
 				disabled={isLoading}
 			></textarea>
 			<button
 				type="button"
 				on:click={() => dispatch('send')}
 				disabled={isLoading || !input.trim()}
-				class="inline-flex h-10 w-10 shrink-0 items-center justify-center self-end rounded-full bg-sky-600 text-white transition-colors hover:bg-sky-500 disabled:cursor-not-allowed disabled:opacity-40 sm:h-auto sm:w-auto sm:rounded-xl sm:px-3 sm:py-2"
+				class="inline-flex shrink-0 items-center justify-center self-end rounded-[6px] bg-[var(--sage)] px-4 py-2.5 font-semibold text-white transition-colors hover:bg-[var(--sage-deep)] disabled:cursor-wait disabled:opacity-50"
 				aria-label="Send"
 			>
 				{#if isLoading}
 					<Loader2 size={18} strokeWidth={2} class="animate-spin" />
 				{:else}
-					<ArrowRight size={18} strokeWidth={2} />
+					Send
 				{/if}
 			</button>
 		</div>

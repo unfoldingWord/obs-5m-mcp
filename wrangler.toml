@@ -2,15 +2,14 @@ name = "obs-5m-mcp"
 main = "src/worker.ts"
 compatibility_date = "2025-05-01"
 compatibility_flags = ["nodejs_compat", "global_fetch_strictly_public"]
-# Personal Cloudflare account (Abelper54)
-account_id = "de1e20d3208ac1885aa966f426663566"
+# unfoldingWord Cloudflare account
+account_id = "5a3ffd86280d3ed086be76d955829242"
 
-# SvelteKit Workers Assets: enable after a successful `npm run build:web`
-# (Windows EBUSY on `.svelte-kit/cloudflare` can block the adapter; use Worker HTML /chat until then.)
-# [assets]
-# directory = "web/.svelte-kit/cloudflare"
-# binding = "ASSETS"
-# run_worker_first = true
+# Svelte chat UI (npm run build:web → web/dist). Worker handles APIs first.
+[assets]
+directory = "web/dist"
+binding = "ASSETS"
+run_worker_first = true
 
 [observability]
 enabled = true
@@ -18,8 +17,8 @@ head_sampling_rate = 1
 
 [[kv_namespaces]]
 binding = "OBS_5M_CACHE"
-id = "ab1abe15951f494899a7aee53a7007d9"
-preview_id = "0bbe075339fd46eeadfd5bf618c1aa5c"
+id = "dbce5945a6d145c58fe6c5ac69dba073"
+preview_id = "57e62549ea044792b846c86c024fa661"
 
 # Enable R2 in the Cloudflare dashboard, then uncomment:
 #   npx wrangler r2 bucket create obs-5m-mcp-assets
@@ -36,4 +35,6 @@ tag = "v1"
 new_sqlite_classes = ["Obs5mMCP"]
 
 [vars]
-PUBLIC_BASE_URL = "https://obs-5m-mcp.abelper54.workers.dev"
+PUBLIC_BASE_URL = "https://obs-5m-mcp.unfoldingword.workers.dev"
+# RATE_LIMIT_RPM = "90"   # optional; default 90 when unset. Set "0" to disable.
+# MCP_API_KEY is a wrangler secret (not a plaintext var) when enabling auth.

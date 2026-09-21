@@ -30,6 +30,7 @@ export default defineConfig({
 		proxy: {
 			// Optional: wrangler on 8790 for MCP/PDF while Vite serves chat
 			'/mcp': { target: 'http://127.0.0.1:8790', changeOrigin: true, ws: true },
+			'/api/chat': { target: 'http://127.0.0.1:8790', changeOrigin: true },
 			'/api/tool': { target: 'http://127.0.0.1:8790', changeOrigin: true },
 			'/api/mcp-manifest': { target: 'http://127.0.0.1:8790', changeOrigin: true },
 			'/health': { target: 'http://127.0.0.1:8790', changeOrigin: true },

@@ -22,7 +22,7 @@ const inputSchema = z.object({
 export const getStoryTool: ToolModule<typeof inputSchema> = {
   name: "get_story",
   description:
-    "Fetch OBS story introduction (key idea, creedal verse, metanarrative) and frame text for a story. English from Door43 en_obs_tf.",
+    "Fetch OBS story introduction (key idea, creedal verse, metanarrative) and frame text for a story. English from Door43 catalog subject OBS Theological Formation (tc-ready).",
   inputSchema,
   outputSchema: withNotAvailableOutput({
     language: z.string().optional(),

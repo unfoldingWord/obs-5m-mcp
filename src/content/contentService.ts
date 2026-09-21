@@ -55,6 +55,8 @@ export interface StoryBundle {
   downstreamApiCalls: number;
   /** Where structured content came from */
   sourceKind: "dcs" | "local-md" | "pdf-text";
+  /** Catalog owner/repo when sourceKind is dcs (subject search). */
+  dcsRepo?: { owner: string; repo: string };
 }
 
 const STORY_TITLE_FALLBACK: Record<number, string> = Object.fromEntries(
@@ -155,12 +157,13 @@ async function loadDcsBundle(
   storyNum: number,
   env: ContentEnv,
 ): Promise<StoryBundle> {
-  const { markdown, cacheStatus, owner } = await fetchStoryMarkdown(
+  const { markdown, cacheStatus, owner, repo } = await fetchStoryMarkdown(
     language,
     storyNum,
     env,
   );
   let downstreamApiCalls = cacheStatus === "hit" ? 0 : 1;
+  const dcsRepo = { owner, repo };
 
   let story = parseObsTfStoryMarkdown(markdown);
   const filesNeeded = [
@@ -170,7 +173,7 @@ async function loadDcsBundle(
     language,
     filesNeeded,
     env,
-    owner,
+    dcsRepo,
   );
   downstreamApiCalls += filesNeeded.length;
 
@@ -191,6 +194,7 @@ async function loadDcsBundle(
     cacheStatus,
     downstreamApiCalls,
     sourceKind: "dcs",
+    dcsRepo,
   };
 }
 

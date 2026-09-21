@@ -8,4 +8,4 @@
 	});
 </script>
 
-<p class="p-6 text-sm text-slate-400">Redirecting to chat…</p>
+<p class="p-6 text-sm text-[var(--muted)]">Redirecting to chat…</p>

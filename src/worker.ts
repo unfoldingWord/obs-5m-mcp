@@ -11,7 +11,8 @@
  *   /debug                → X-ray UI
  *   /assets/pdf/<r2Key>   → stream PDF from R2
  *   /health               → liveness
- *   /chat, /api/chat, …   → SvelteKit (web/.svelte-kit/cloudflare)
+ *   /chat, /_app/*        → Svelte static assets (env.ASSETS)
+ *   /api/chat             → skillChat SSE (Worker)
  */
 
 import { Obs5mMCP, type Env } from "./mcp/agent.js";
@@ -24,11 +25,20 @@ import { XraySession } from "./core/xray/traceEvents.js";
 import { formatXrayReport } from "./core/xray/formatReport.js";
 import { renderDebugPage } from "./core/xray/debugPage.js";
 import { handleChatRequest } from "./chat/chatHandler.js";
-import { renderChatPage } from "./chat/chatPage.js";
 import { renderAgentGuidePage } from "./docs/agentGuidePage.js";
 import { apiDiscoveryJson, renderHomePage } from "./docs/homePage.js";
+import { enforceOptionalMcpApiKey } from "./core/mcpAuth.js";
+import { enforceRateLimit } from "./core/rateLimit.js";
 
 const mcpHandler = Obs5mMCP.serve("/mcp", { binding: "MCP_AGENT" });
+
+/** Same Streamable HTTP CORS gate as Translation Helps (`GET` SSE + `DELETE` session). */
+const MCP_CORS = {
+  "Access-Control-Allow-Origin": "*",
+  "Access-Control-Allow-Methods": "GET, POST, DELETE, OPTIONS",
+  "Access-Control-Allow-Headers":
+    "Content-Type, Authorization, X-Api-Key, Mcp-Session-Id",
+};
 
 export { Obs5mMCP };
 
@@ -45,6 +55,17 @@ export default {
     }
 
     if (url.pathname === "/mcp" || url.pathname.startsWith("/mcp/")) {
+      if (request.method === "OPTIONS") {
+        return new Response(null, { status: 204, headers: MCP_CORS });
+      }
+      const authDenied = enforceOptionalMcpApiKey(
+        request,
+        env.MCP_API_KEY,
+        MCP_CORS,
+      );
+      if (authDenied) return authDenied;
+      const limited = enforceRateLimit(request, env.RATE_LIMIT_RPM, MCP_CORS);
+      if (limited) return limited;
       return mcpHandler.fetch(request, env, ctx);
     }
 
@@ -77,13 +98,6 @@ export default {
       });
     }
 
-    if (url.pathname === "/chat" && request.method === "GET") {
-      const html = renderChatPage(env.PUBLIC_BASE_URL || url.origin);
-      return new Response(html, {
-        status: 200,
-        headers: { "Content-Type": "text/html; charset=utf-8" },
-      });
-    }
     if (
       (url.pathname === "/api/chat" && request.method === "POST") ||
       (url.pathname === "/api/chat" && request.method === "OPTIONS")
@@ -125,7 +139,13 @@ export default {
       });
     }
 
-    return new Response("Not found", { status: 404 });
+    if (env.ASSETS) {
+      return env.ASSETS.fetch(request);
+    }
+    return new Response(
+      "Chat UI is not built. Run `npm run build:web` and restart wrangler.",
+      { status: 503 },
+    );
   },
 };
 

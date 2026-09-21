@@ -1,5 +1,7 @@
 /** Minimal X-ray debug UI (no SvelteKit) — call tools with debug:true and show traces. */
 
+import { siteCss, siteFonts, siteFooter, siteHeader } from "../../docs/siteStyles.js";
+
 export function renderDebugPage(baseUrl: string): string {
   const base = baseUrl.replace(/\/$/, "");
   return `<!DOCTYPE html>
@@ -7,43 +9,76 @@ export function renderDebugPage(baseUrl: string): string {
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>obs-5m-mcp X-ray</title>
+  <title>X-ray · OBS-TF MCP</title>
+  <meta name="description" content="Debug client for OBS-TF MCP — run tools with pipeline traces." />
+  ${siteFonts()}
   <style>
-    :root { color-scheme: light dark; font-family: ui-sans-serif, system-ui, sans-serif; }
-    body { margin: 0; padding: 1rem 1.25rem 3rem; max-width: 1100px; }
-    h1 { font-size: 1.25rem; margin: 0 0 0.25rem; }
-    .sub { opacity: 0.7; font-size: 0.9rem; margin-bottom: 1rem; }
-    label { display: block; font-size: 0.8rem; opacity: 0.8; margin-top: 0.6rem; }
-    input, select, textarea, button {
+    ${siteCss()}
+    .xray-wrap { max-width: 1100px; margin: 0 auto; padding: 1.5rem clamp(1rem, 3vw, 2rem) 3rem; }
+    .xray-wrap h1 {
+      font-family: var(--font-display); font-size: 1.65rem; margin: 0 0 0.35rem;
+      letter-spacing: -0.02em;
+    }
+    .xray-wrap .sub { color: var(--muted); font-size: 0.95rem; margin-bottom: 0.85rem; max-width: 40rem; }
+    .xray-wrap label { display: block; font-size: 0.8rem; color: var(--muted); margin-top: 0.65rem; font-weight: 600; }
+    .xray-wrap input, .xray-wrap select, .xray-wrap textarea {
       font: inherit; width: 100%; box-sizing: border-box; margin-top: 0.25rem;
-      padding: 0.45rem 0.55rem; border-radius: 6px; border: 1px solid #8884;
-      background: transparent;
+      padding: 0.5rem 0.65rem; border-radius: 6px; border: 1px solid var(--line);
+      background: #fff; color: var(--ink);
     }
-    textarea { min-height: 5rem; font-family: ui-monospace, monospace; font-size: 0.85rem; }
-    button {
-      width: auto; margin-top: 0.85rem; cursor: pointer;
-      background: #0b6bcb; color: #fff; border: none; padding: 0.5rem 1rem;
+    .xray-wrap textarea { min-height: 5rem; font-family: var(--font-mono); font-size: 0.85rem; }
+    .xray-wrap button {
+      width: auto; margin-top: 0.85rem; cursor: pointer; font: inherit; font-weight: 600;
+      background: var(--sage); color: #fff; border: none; padding: 0.55rem 1.1rem; border-radius: 6px;
     }
-    button.secondary { background: #555; margin-left: 0.5rem; }
-    .row { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 0.75rem; }
-    @media (max-width: 700px) { .row { grid-template-columns: 1fr; } }
-    pre {
+    .xray-wrap button.secondary {
+      background: transparent; color: var(--ink); border: 1px solid var(--line); margin-left: 0.5rem;
+    }
+    .xray-wrap .row { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 0.75rem; }
+    @media (max-width: 700px) { .xray-wrap .row { grid-template-columns: 1fr; } }
+    .xray-wrap pre {
       white-space: pre-wrap; word-break: break-word;
-      background: #0001; border-radius: 8px; padding: 0.75rem; font-size: 0.8rem;
+      background: #e8eef1; border: 1px solid var(--line); border-radius: 6px;
+      padding: 0.75rem; font-size: 0.8rem;
     }
-    .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; margin-top: 1rem; }
-    @media (max-width: 900px) { .grid { grid-template-columns: 1fr; } }
-    .panel { border: 1px solid #8884; border-radius: 10px; padding: 0.75rem; }
-    .panel h2 { font-size: 0.95rem; margin: 0 0 0.5rem; }
+    .xray-wrap .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; margin-top: 1rem; }
+    @media (max-width: 900px) { .xray-wrap .grid { grid-template-columns: 1fr; } }
+    .xray-wrap .panel {
+      border: 1px solid var(--line); border-radius: 6px; padding: 0.85rem; background: #fff;
+    }
+    .xray-wrap .panel h2 {
+      font-family: var(--font-display); font-size: 1rem; margin: 0 0 0.5rem;
+    }
+    .xray-orient {
+      margin: 0 0 1.35rem;
+      padding: 1rem 1.15rem;
+      background: var(--sage-soft);
+      border: 1px solid #c5d9ce;
+      border-radius: var(--radius);
+      max-width: 42rem;
+    }
+    .xray-orient p { margin: 0.35rem 0 0; color: var(--ink-soft); font-size: 0.95rem; }
+    .xray-orient p:first-child { margin-top: 0; }
+    .xray-orient strong { color: var(--sage-deep); }
   </style>
 </head>
 <body>
-  <h1>obs-5m-mcp X-ray</h1>
-  <p class="sub">Pipeline transparency for tool calls. Base: ${base}
-    · <a href="${base}/docs">Agent guide</a>
-    · <a href="${base}/chat">Chat</a>
-    · <a href="${base}/">Home</a>
+  ${siteHeader(base, "debug")}
+  <div class="xray-wrap">
+  <p class="section-kicker">MCP debug</p>
+  <h1>X-ray</h1>
+  <p class="sub">
+    Debug client for this MCP server — invoke tools and inspect the resolution pipeline.
+    Base: <code>${base}</code> · Production MCP: <a href="${base}/mcp"><code>/mcp</code></a>
   </p>
+
+  <div class="xray-orient">
+    <p><strong>How to use.</strong> Pick a tool, set language and reference, then run with X-ray.</p>
+    <p>
+      Start with <code>fetch_obs_study_manual</code> and a story like <code>1:1</code>.
+      Result shows the payload; the report shows DCS / local resolution steps. Read-only — nothing here changes production data.
+    </p>
+  </div>
 
   <div class="row">
     <div>
@@ -75,6 +110,10 @@ export function renderDebugPage(baseUrl: string): string {
       <h2>X-ray report</h2>
       <pre id="xray">—</pre>
     </div>
+  </div>
+  </div>
+  <div class="shell" style="padding-top:0">
+    ${siteFooter({ extraMeta: "X-ray · tool runner for OBS-TF MCP" })}
   </div>
 
   <script>

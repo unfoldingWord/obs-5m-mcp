@@ -22,6 +22,10 @@ export interface Env {
   PUBLIC_BASE_URL?: string;
   /** Required for /chat and POST /api/chat (OpenAI tool-calling loop). */
   OPENAI_API_KEY?: string;
+  /** Optional Bearer/X-Api-Key for /mcp. Unset = anonymous public access. */
+  MCP_API_KEY?: string;
+  /** Max requests/min per IP for /mcp. Default 90; 0 = off. */
+  RATE_LIMIT_RPM?: string;
 }
 
 function mcpError(err: { code: string; message: string }) {

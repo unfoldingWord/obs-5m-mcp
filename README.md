@@ -1,10 +1,12 @@
-# obs-5m-mcp
+# OBS-TF MCP
 
-MCP server for **Open Bible Stories + Theological Formation** (Five Movements).
+**OBS Theological Formation MCP** — a [Model Context Protocol](https://modelcontextprotocol.io/) server that exposes tools so AI assistants and coaches can fetch **Open Bible Stories + Theological Formation (Five Movements)** study content.
 
-Content resolution: DCS catalog **`subject=OBS Theological Formation`** + **`topic=tc-ready`** (same defaults as Translation Helps MCP). English comes from Door43 [`unfoldingWord/en_obs_tf`](https://git.door43.org/unfoldingWord/en_obs_tf). When DCS has no entry (Indonesian today), tools use **extracted text from self-hosted PDFs** (R2) — not just a download link ([bt-servant-engine#215](https://github.com/unfoldingWord/bt-servant-engine/issues/215)).
+This is a **tool server**, not a standalone translation app. Clients (Claude, Cursor, [BT Servant](https://www.btservant.ai/) coaches, custom agents) connect to `/mcp` and call structured tools. Docs site: [obs-5m-mcp.unfoldingword.workers.dev](https://obs-5m-mcp.unfoldingword.workers.dev).
 
-Implements the study-manual surface requested in [translation-helps-mcp#36](https://github.com/unfoldingWord/translation-helps-mcp/issues/36) via **`fetch_obs_study_manual`**.
+**Sibling:** [Translation Helps MCP](https://tc-helps.mcp.servant.bible/v2/) — scripture text, TN / TW / TA / TQ, passage tools, classic OBS helps. **This server** — OBS Theological Formation manuals (observe → discuss → draft → check → serve → share).
+
+**Content:** DCS catalog `subject=OBS Theological Formation` + `topic=tc-ready`. English from Door43 [`unfoldingWord/en_obs_tf`](https://git.door43.org/unfoldingWord/en_obs_tf). When DCS has no entry (Indonesian today), tools use converted/local markdown (and PDF text fallback) — not just a download link ([bt-servant-engine#215](https://github.com/unfoldingWord/bt-servant-engine/issues/215)). Primary tool: **`fetch_obs_study_manual`** ([translation-helps-mcp#36](https://github.com/unfoldingWord/translation-helps-mcp/issues/36)).
 
 Content license: **CC BY-SA 4.0** (unfoldingWord / partners).
 
@@ -15,30 +17,75 @@ npm install
 npm test                 # unit + contracts
 npm run test:unit
 npm run test:contracts
+npm run build:web        # Svelte chat → web/dist (Worker assets)
 npm run dev              # http://localhost:8790
 # Chat UI (needs OPENAI_API_KEY in .dev.vars):
 #   http://localhost:8790/chat
+# Optional Vite HMR (proxies /api/chat to wrangler):
+#   npm run dev:web      # http://localhost:8174/chat
 # with wrangler running:
 npm run test:smoke
 ```
 
 Copy `.dev.vars.example` → `.dev.vars` and set `OPENAI_API_KEY` for the chat UI. Deployed: `wrangler secret put OPENAI_API_KEY`.
 
+**Production (unfoldingWord):** [https://obs-5m-mcp.unfoldingword.workers.dev](https://obs-5m-mcp.unfoldingword.workers.dev)
+
 Endpoints:
 
 | Path | Purpose |
 |------|---------|
-| `/` | Website home |
-| `/docs` | **Agent guide** — how AI agents run translator sessions with these tools |
-| `/chat` | Simple LLM chat UI (OpenAI + in-process MCP tools) |
-| `/api/chat` | Chat SSE API (`status` / `token` / `done`; `"debug": true` for X-ray) |
-| `/mcp` | MCP (Streamable HTTP / SSE via `agents/mcp`) |
-| `/api` | JSON discovery (`Accept: application/json` on `/` also works) |
+| `/` | Docs home — what MCP is, what this server provides |
+| `/docs` | **Developer / agent guide** — connect, tool map, `part` / `sessionFlow` |
+| `/mcp` | Streamable HTTP MCP (`GET` SSE, `POST`, `DELETE` session — same setup as Translation Helps) |
 | `/api/mcp-manifest` | Tool catalog JSON |
 | `/api/tool` | Direct tool invoke; pass `"debug": true` for X-ray traces |
-| `/debug` | X-ray UI (tool runner + pipeline report) |
+| `/api` | JSON discovery (`Accept: application/json` on `/` also works) |
+| `/chat` | Optional Svelte demo client (same UI locally and in production) |
+| `/api/chat` | Chat SSE API (`status` / `token` / `done`; `"debug": true` for X-ray) |
+| `/debug` | X-ray debug client (tool runner + pipeline report) |
 | `/assets/pdf/<r2Key>` | Stream self-hosted PDF from R2 |
 | `/health` | Liveness |
+
+### Connect to Claude Desktop / Cursor
+
+Same Streamable HTTP setup as Translation Helps. Cursor uses a `url`; Claude Desktop uses `mcp-remote`.
+
+**Cursor** (`.cursor/mcp.json`):
+
+```json
+{
+  "mcpServers": {
+    "obs-tf": {
+      "url": "https://obs-5m-mcp.unfoldingword.workers.dev/mcp"
+    }
+  }
+}
+```
+
+**Claude Desktop** (`claude_desktop_config.json`):
+
+```json
+{
+  "mcpServers": {
+    "obs-tf": {
+      "command": "npx",
+      "args": ["-y", "mcp-remote", "https://obs-5m-mcp.unfoldingword.workers.dev/mcp"]
+    }
+  }
+}
+```
+
+**Direct HTTP** (Streamable MCP):
+
+```bash
+curl -X POST https://obs-5m-mcp.unfoldingword.workers.dev/mcp \
+  -H "Content-Type: application/json" \
+  -H "Accept: application/json, text/event-stream" \
+  -d '{"jsonrpc":"2.0","id":1,"method":"initialize","params":{"protocolVersion":"2025-03-26","capabilities":{},"clientInfo":{"name":"curl","version":"0"}}}'
+```
+
+`POST` requires `Accept: application/json, text/event-stream`. `GET` opens the SSE listen (needs `Mcp-Session-Id` after initialize). `DELETE` ends the session.
 
 ### Tests & X-ray
 
@@ -54,21 +101,18 @@ Modeled on [translation-helps-mcp](https://github.com/unfoldingWord/translation-
 
 ### Chat (LLM + MCP tools)
 
-Cloned from Translation Helps `/chat` (SvelteKit + ChatDock + X-ray), rewired for OBS study-for-translation instead of scripture/TN/TW.
+One Svelte UI, served by the Worker at `/chat` after `npm run build:web`. Same page locally and in production. `POST /api/chat` stays on the Worker.
 
 ```bash
-# Terminal A — MCP worker (tools, PDFs, docs)
+npm run build:web
 npm run dev
-
-# Terminal B — Svelte chat (primary UI)
-npm run dev:web
-# → http://localhost:8174/chat
+# → http://localhost:8790/chat
 ```
 
+Optional Vite HMR while iterating on the UI (`npm run dev:web` → `:8174/chat`) proxies `/api/chat` and `/api/tool` to the Worker on `:8790`.
+
 - **Study / Translate / Check** map onto OBS sessionFlow parts (not Bible workflow modes).
-- **Session** side panel replaces the TH Helps/scripture panel with Five Movements parts.
-- API: `web/src/routes/api/chat` → `src/chat/chatHandler` + in-process `TOOL_REGISTRY` (OBS tools).
-- Worker `:8790/chat` still serves a slim HTML fallback if the Svelte app is not running.
+- **Session** side panel lists Five Movements parts (`fetch_obs_study_manual`).
 
 ## Tools
 
@@ -153,7 +197,7 @@ Output: `exports/id_obs_tf/` (gitignored). Create an empty Door43 repo, then `gi
 
 ## Cloudflare setup
 
-This app deploys as a **Cloudflare Worker** (MCP Durable Object + Workers Assets for the Ezer chat UI). That is the right host for MCP — not a static Pages site alone.
+**OBS Theological Formation MCP** (OBS-TF MCP) deploys as a **Cloudflare Worker** (MCP Durable Object + Workers Assets for the chat UI). Cloudflare Workers is the right host for MCP — not a static Pages site alone.
 
 ```bash
 npx wrangler kv namespace create OBS_5M_CACHE
@@ -162,14 +206,14 @@ npx wrangler kv namespace create OBS_5M_CACHE --preview
 npx wrangler r2 bucket create obs-5m-mcp-assets
 ```
 
-Paste the KV ids into `wrangler.toml`, set `PUBLIC_BASE_URL`, then:
+Paste the KV ids into `wrangler.toml`, set `PUBLIC_BASE_URL` to `https://obs-5m-mcp.unfoldingword.workers.dev`, then:
 
 ```bash
 npm run deploy
 npx wrangler secret put OPENAI_API_KEY
 ```
 
-Chat: `https://<worker>/chat` · MCP: `https://<worker>/mcp`
+Live: [https://obs-5m-mcp.unfoldingword.workers.dev](https://obs-5m-mcp.unfoldingword.workers.dev) · Chat: `/chat` · MCP: `/mcp`
 
 ## BT Servant registration
 

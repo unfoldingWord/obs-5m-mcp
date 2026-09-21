@@ -15,11 +15,13 @@ data/obs-tf-md/**/*.md
 !data/obs-tf-md/**/bundle.json
 exports/
 *.log
+scripts/.eval-chat-last.json
 .DS_Store
 coverage/
 web/node_modules/
 web/.svelte-kit/
 web/build/
+web/dist/
 web/.env
 web/.dev.vars
 

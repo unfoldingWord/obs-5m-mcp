@@ -11,9 +11,14 @@ export function loadFixture(rel: string): string {
 }
 
 /**
- * Stub global fetch for Door43 en_obs_tf raw + catalog URLs.
+ * Stub global fetch for Door43 catalog (subject=OBS Theological Formation) + raw URLs.
+ * Catalog returns owner/repo; fetches use those paths (no invented `{lang}_obs_tf`).
  */
-export function stubDcsFetch(): void {
+export function stubDcsFetch(opts?: {
+  /** Override catalog repo name to prove we don't hardcode `_obs_tf`. */
+  repoName?: string;
+}): void {
+  const repoName = opts?.repoName ?? "en_obs_tf";
   const story1 = loadFixture("obs_story_1.md");
   const trans: Record<string, string> = {
     "movement_2_drafting.md": loadFixture("transclusions/movement_2_drafting.md"),
@@ -31,9 +36,14 @@ export function stubDcsFetch(): void {
     vi.fn(async (input: RequestInfo | URL) => {
       const url = String(input);
       if (url.includes("/api/v1/catalog/search")) {
-        // Mirror TH MCP: catalog must request topic=tc-ready
+        // Mirror TH MCP: catalog must request topic=tc-ready + subject
         if (!url.includes("topic=tc-ready")) {
           return new Response("missing topic=tc-ready", { status: 400 });
+        }
+        if (!url.includes(encodeURIComponent("OBS Theological Formation")) &&
+            !url.includes("OBS+Theological+Formation") &&
+            !url.includes("subject=OBS")) {
+          return new Response("missing subject", { status: 400 });
         }
         const params = new URL(url).searchParams;
         const lang = params.get("lang");
@@ -41,7 +51,7 @@ export function stubDcsFetch(): void {
           {
             language: "en",
             language_title: "English",
-            name: "en_obs_tf",
+            name: repoName,
             owner: "unfoldingWord",
             subject: "OBS Theological Formation",
           },
@@ -54,10 +64,11 @@ export function stubDcsFetch(): void {
           headers: { "Content-Type": "application/json" },
         });
       }
-      if (url.includes("/en_obs_tf/") && url.includes("obs_story_1.md")) {
+      const repoPath = `/${repoName}/`;
+      if (url.includes(repoPath) && url.includes("obs_story_1.md")) {
         return new Response(story1, { status: 200 });
       }
-      if (url.includes("/en_obs_tf/") && url.includes("/transclusions/")) {
+      if (url.includes(repoPath) && url.includes("/transclusions/")) {
         const decoded = decodeURIComponent(url);
         const file = decoded.split("/transclusions/")[1] ?? "";
         const body = trans[file];

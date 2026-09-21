@@ -1,6 +1,9 @@
 /**
- * Door43 / DCS fetcher for `{lang}_obs_tf` resources.
- * Catalog discovery mirrors translation-helps-mcp: always topic=tc-ready + stage=prod.
+ * Door43 / DCS fetcher for OBS Theological Formation resources.
+ *
+ * Discovery is subject-based (same pattern as translation-helps-mcp):
+ *   subject=OBS Theological Formation + topic=tc-ready + stage=prod
+ * Owner/repo come from catalog hits — never invent `{lang}_obs_tf`.
  */
 
 import { ErrorCode, Obs5mError } from "../core/errors.js";
@@ -9,8 +12,8 @@ import { xrayPush } from "../core/xray/context.js";
 
 const DCS_BASE = "https://git.door43.org";
 const GITEA_API = `${DCS_BASE}/api/v1`;
-const DEFAULT_ORG = "unfoldingWord";
-const OBS_TF_SUBJECT = "OBS Theological Formation";
+const PREFERRED_OWNER = "unfoldingWord";
+export const OBS_TF_SUBJECT = "OBS Theological Formation";
 const STORY_TTL_SECONDS = 3600;
 const CATALOG_TTL_SECONDS = 86400;
 
@@ -50,21 +53,26 @@ function buildCatalogUrl(
   return `${GITEA_API}/${endpoint}?${params.toString()}`;
 }
 
-function storyRawUrl(
-  language: string,
-  storyNum: number,
-  owner = DEFAULT_ORG,
-): string {
-  return `${DCS_BASE}/${owner}/${language}_obs_tf/raw/branch/master/obs_story_${storyNum}.md`;
+function storyRawUrl(owner: string, repo: string, storyNum: number): string {
+  return `${DCS_BASE}/${owner}/${repo}/raw/branch/master/obs_story_${storyNum}.md`;
 }
 
-function transclusionRawUrl(
-  language: string,
-  file: string,
-  owner = DEFAULT_ORG,
-): string {
+function transclusionRawUrl(owner: string, repo: string, file: string): string {
   const name = file.endsWith(".md") ? file : `${file}.md`;
-  return `${DCS_BASE}/${owner}/${language}_obs_tf/raw/branch/master/transclusions/${encodeURIComponent(name)}`;
+  return `${DCS_BASE}/${owner}/${repo}/raw/branch/master/transclusions/${encodeURIComponent(name)}`;
+}
+
+/**
+ * Prefer unfoldingWord among catalog hits (TH MCP pickPreferredCatalogEntry).
+ */
+export function pickPreferredObsTfEntry(
+  entries: CatalogRepoRef[],
+): CatalogRepoRef | undefined {
+  if (entries.length === 0) return undefined;
+  const uw = entries.find(
+    (e) => e.owner.toLowerCase() === PREFERRED_OWNER.toLowerCase(),
+  );
+  return uw ?? entries[0];
 }
 
 async function kvGet(kv: KVNamespace | undefined, key: string): Promise<string | null> {
@@ -92,13 +100,14 @@ async function kvPut(
 
 /**
  * Search DCS catalog for OBS Theological Formation (tc-ready / prod).
+ * Returns every matching catalog entry (may include multiple owners per language).
  */
 export async function searchObsTfCatalog(
   env: DcsEnv,
   opts?: { language?: string },
 ): Promise<{ entries: CatalogRepoRef[]; cacheStatus: "hit" | "miss" }> {
   const lang = opts?.language?.toLowerCase();
-  const key = `obs-tf:catalog:search:${lang ?? "all"}`;
+  const key = `obs-tf:catalog:search:v2:${lang ?? "all"}`;
   const cached = await kvGet(env.OBS_5M_CACHE, key);
   if (cached) {
     xrayPush({ type: "cache", key, hit: true });
@@ -121,7 +130,7 @@ export async function searchObsTfCatalog(
     const res = await fetch(url, {
       headers: {
         Accept: "application/json",
-        "User-Agent": "obs-5m-mcp/0.1",
+        "User-Agent": "obs-5m-mcp/0.2",
       },
     });
     xrayPush({
@@ -146,21 +155,17 @@ export async function searchObsTfCatalog(
     };
 
     const entries: CatalogRepoRef[] = [];
-    const seen = new Set<string>();
     for (const item of data.data ?? []) {
       const code = (item.language ?? "").toLowerCase();
-      if (!code || seen.has(code)) continue;
-      seen.add(code);
+      if (!code) continue;
       const ownerLogin =
         (typeof item.owner === "string" ? item.owner : item.owner?.login) ||
         item.repo?.owner?.login ||
-        item.full_name?.split("/")[0] ||
-        DEFAULT_ORG;
+        item.full_name?.split("/")[0];
       const repoName =
-        item.name ||
-        item.repo?.name ||
-        item.full_name?.split("/")[1] ||
-        `${code}_obs_tf`;
+        item.name || item.repo?.name || item.full_name?.split("/")[1];
+      // Subject search only — never invent `{lang}_obs_tf` when catalog omits names.
+      if (!ownerLogin || !repoName) continue;
       entries.push({
         language: code,
         languageTitle: item.language_title ?? code,
@@ -178,14 +183,33 @@ export async function searchObsTfCatalog(
   }
 }
 
-/** Resolve owner for a language's obs_tf repo via catalog; falls back to unfoldingWord. */
+/**
+ * Resolve owner/repo for a language via subject catalog search.
+ * Prefers unfoldingWord when multiple owners publish the same subject.
+ */
+export async function resolveObsTfRepo(
+  language: string,
+  env: DcsEnv,
+): Promise<CatalogRepoRef | null> {
+  const code = language.toLowerCase();
+  const { entries: langEntries } = await searchObsTfCatalog(env, {
+    language: code,
+  });
+  let matches = langEntries.filter((e) => e.language === code);
+  if (matches.length === 0) {
+    const { entries: all } = await searchObsTfCatalog(env);
+    matches = all.filter((e) => e.language === code);
+  }
+  return pickPreferredObsTfEntry(matches) ?? null;
+}
+
+/** @deprecated Use resolveObsTfRepo — kept for callers that only need owner. */
 export async function resolveObsTfOwner(
   language: string,
   env: DcsEnv,
 ): Promise<string> {
-  const { entries } = await searchObsTfCatalog(env, { language });
-  const hit = entries.find((e) => e.language === language.toLowerCase());
-  return hit?.owner ?? DEFAULT_ORG;
+  const ref = await resolveObsTfRepo(language, env);
+  return ref?.owner ?? PREFERRED_OWNER;
 }
 
 /**
@@ -195,36 +219,45 @@ export async function hasObsTfOnDcs(
   language: string,
   env: DcsEnv,
 ): Promise<boolean> {
-  const { entries } = await searchObsTfCatalog(env, { language });
-  if (entries.some((e) => e.language === language.toLowerCase())) return true;
-  // Also accept broader catalog list (lang filter empty) for cache reuse
-  const all = await searchObsTfCatalog(env);
-  return all.entries.some((e) => e.language === language.toLowerCase());
+  return (await resolveObsTfRepo(language, env)) !== null;
 }
 
 export async function fetchStoryMarkdown(
   language: string,
   storyNum: number,
   env: DcsEnv,
-): Promise<{ markdown: string; cacheStatus: "hit" | "miss"; owner: string }> {
-  const owner = await resolveObsTfOwner(language, env);
-  const key = `obs-tf:${language}:story:${storyNum}`;
+): Promise<{
+  markdown: string;
+  cacheStatus: "hit" | "miss";
+  owner: string;
+  repo: string;
+}> {
+  const ref = await resolveObsTfRepo(language, env);
+  if (!ref) {
+    throw new Obs5mError({
+      code: ErrorCode.RESOURCE_NOT_FOUND,
+      message: `No "${OBS_TF_SUBJECT}" (tc-ready) catalog entry for language "${language}".`,
+    });
+  }
+
+  const { owner, repo } = ref;
+  const key = `obs-tf:${owner}/${repo}:story:${storyNum}`;
   const cached = await kvGet(env.OBS_5M_CACHE, key);
   if (cached) {
     xrayPush({ type: "cache", key, hit: true });
     xrayPush({
       type: "dcs_fetch",
-      url: storyRawUrl(language, storyNum, owner),
+      url: storyRawUrl(owner, repo, storyNum),
       status: 200,
       ms: 0,
       cache: "hit",
       kind: "story",
     });
-    return { markdown: cached, cacheStatus: "hit", owner };
+    return { markdown: cached, cacheStatus: "hit", owner, repo };
   }
   xrayPush({ type: "cache", key, hit: false });
 
-  const url = storyRawUrl(language, storyNum, owner);
+  const url = storyRawUrl(owner, repo, storyNum);
   const t0 = Date.now();
   const res = await fetch(url);
   const ms = Date.now() - t0;
@@ -239,7 +272,7 @@ export async function fetchStoryMarkdown(
   if (res.status === 404) {
     throw new Obs5mError({
       code: ErrorCode.RESOURCE_NOT_FOUND,
-      message: `OBS-TF story ${storyNum} not found for language "${language}" on DCS (${owner}/${language}_obs_tf).`,
+      message: `OBS-TF story ${storyNum} not found for language "${language}" on DCS (${owner}/${repo}).`,
     });
   }
   if (!res.ok) {
@@ -251,23 +284,29 @@ export async function fetchStoryMarkdown(
   }
   const markdown = await res.text();
   await kvPut(env.OBS_5M_CACHE, key, markdown, STORY_TTL_SECONDS);
-  return { markdown, cacheStatus: "miss", owner };
+  return { markdown, cacheStatus: "miss", owner, repo };
 }
 
 export async function fetchTransclusionMarkdown(
   language: string,
   file: string,
   env: DcsEnv,
-  owner?: string,
+  repoRef?: { owner: string; repo: string },
 ): Promise<string | null> {
-  const resolvedOwner = owner ?? (await resolveObsTfOwner(language, env));
-  const key = `obs-tf:${language}:trans:${file}`;
+  const ref =
+    repoRef ??
+    (await resolveObsTfRepo(language, env)) ??
+    undefined;
+  if (!ref) return null;
+
+  const { owner, repo } = ref;
+  const key = `obs-tf:${owner}/${repo}:trans:${file}`;
   const cached = await kvGet(env.OBS_5M_CACHE, key);
   if (cached) {
     xrayPush({ type: "cache", key, hit: true });
     xrayPush({
       type: "dcs_fetch",
-      url: transclusionRawUrl(language, file, resolvedOwner),
+      url: transclusionRawUrl(owner, repo, file),
       status: 200,
       ms: 0,
       cache: "hit",
@@ -277,7 +316,7 @@ export async function fetchTransclusionMarkdown(
   }
   xrayPush({ type: "cache", key, hit: false });
 
-  const url = transclusionRawUrl(language, file, resolvedOwner);
+  const url = transclusionRawUrl(owner, repo, file);
   const t0 = Date.now();
   const res = await fetch(url);
   const ms = Date.now() - t0;
@@ -306,19 +345,19 @@ export async function fetchTransclusionMap(
   language: string,
   files: string[],
   env: DcsEnv,
-  owner?: string,
+  repoRef?: { owner: string; repo: string },
 ): Promise<Map<string, string>> {
   const map = new Map<string, string>();
   const unique = [...new Set(files)];
-  const resolvedOwner = owner ?? (await resolveObsTfOwner(language, env));
+  const ref =
+    repoRef ??
+    (await resolveObsTfRepo(language, env)) ??
+    undefined;
+  if (!ref) return map;
+
   await Promise.all(
     unique.map(async (file) => {
-      const md = await fetchTransclusionMarkdown(
-        language,
-        file,
-        env,
-        resolvedOwner,
-      );
+      const md = await fetchTransclusionMarkdown(language, file, env, ref);
       if (md) {
         map.set(file, md);
         map.set(`${file}.md`, md);
@@ -330,32 +369,31 @@ export async function fetchTransclusionMap(
 
 /**
  * Languages with a published OBS Theological Formation catalog entry (tc-ready).
- * Falls back to English when catalog is unreachable.
+ * One preferred entry per language (unfoldingWord first).
  */
 export async function listObsTfLanguages(
   env: DcsEnv,
 ): Promise<{ languages: CatalogLanguage[]; cacheStatus: "hit" | "miss" }> {
   const { entries, cacheStatus } = await searchObsTfCatalog(env);
-  const languages: CatalogLanguage[] = entries.map((e) => ({
-    code: e.language,
-    name: e.languageTitle,
-    repo: e.repo,
-    owner: e.owner,
-  }));
-
-  if (languages.length === 0) {
-    return {
-      languages: [
-        {
-          code: "en",
-          name: "English",
-          repo: "en_obs_tf",
-          owner: DEFAULT_ORG,
-        },
-      ],
-      cacheStatus,
-    };
+  const byLang = new Map<string, CatalogRepoRef[]>();
+  for (const e of entries) {
+    const list = byLang.get(e.language) ?? [];
+    list.push(e);
+    byLang.set(e.language, list);
   }
+
+  const languages: CatalogLanguage[] = [];
+  for (const [, group] of byLang) {
+    const pick = pickPreferredObsTfEntry(group);
+    if (!pick) continue;
+    languages.push({
+      code: pick.language,
+      name: pick.languageTitle,
+      repo: pick.repo,
+      owner: pick.owner,
+    });
+  }
+
   return { languages, cacheStatus };
 }
 

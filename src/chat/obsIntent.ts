@@ -114,6 +114,9 @@ export function partFacilitationInstruction(
     `Open OBS session part "${part}" for story ${story} (language ${language}). ` +
     `Call fetch_obs_study_manual with reference="${story}", language="${language}", part="${part}", format="md". ` +
     `${framing} ` +
-    `Use the markdown in content — quote exact questions. End with one clear next step.`
+    `Use the markdown in content — quote exact questions. End with one clear next step.` +
+    (part === "movement1"
+      ? ` Keep the words “observation” and “question” visible when you introduce the part.`
+      : "")
   );
 }
