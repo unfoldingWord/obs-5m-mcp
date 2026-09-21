@@ -7,6 +7,7 @@ import {
   emptyEnv,
   restoreFetch,
   stubDcsFetch,
+  stubIndonesianDcsFetch,
 } from "../helpers/mockDcsFetch.js";
 
 describe("tool handlers (mocked DCS)", () => {
@@ -91,6 +92,26 @@ describe("tool handlers (mocked DCS)", () => {
     expect(sc.url).toContain("/assets/pdf/");
     expect(sc.textAvailable).toBe(true);
     expect((sc.text ?? "").length).toBeGreaterThan(500);
+  });
+
+  it("fetch_obs_study_manual loads Indonesian from DCS when catalog has id", async () => {
+    stubIndonesianDcsFetch();
+    const result = await fetchObsStudyManualTool.handler(
+      { reference: "1", language: "id", format: "json" },
+      emptyEnv(),
+      "test-id-dcs",
+    );
+    expect(result.isError).toBe(false);
+    const sc = result.structuredContent as {
+      source?: { kind?: string; owner?: string; repo?: string };
+      storyTitle?: string;
+      available?: boolean;
+    };
+    expect(sc.available).not.toBe(false);
+    expect(sc.source?.kind).toBe("dcs");
+    expect(sc.source?.owner).toBe("unfoldingWord");
+    expect(sc.source?.repo).toBe("id_obs_tf");
+    expect(sc.storyTitle).toBe("Penciptaan dari DCS");
   });
 
   it("fetch_obs_study_manual returns Indonesian local-md when DCS has no id entry", async () => {

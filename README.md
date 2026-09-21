@@ -220,7 +220,7 @@ Live: [https://obs-5m-mcp.unfoldingword.workers.dev](https://obs-5m-mcp.unfoldin
 1. Deploy this worker.
 2. Register the MCP URL (`https://<worker>/mcp`) in BT Servant admin (see `bt-servant-worker` curl examples).
 3. Responses include `_meta.downstream_api_calls` and `_meta.cache_status` per [MCP integration guidelines](https://github.com/unfoldingWord/bt-servant-worker/blob/main/docs/mcp-integration-guidelines.md).
-4. Smoke: `fetch_obs_study_manual` with `reference: "1:1"`, `language: "en"`; `list_resources` for `id` + `get_pdf`.
+4. Smoke: `list_resources` for `en` (DCS) and `id` (converted markdown, not PDF text); `fetch_obs_study_manual` with `reference: "1:1"`, `language: "en"`.
 
 ## Architecture
 

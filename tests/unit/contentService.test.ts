@@ -3,6 +3,7 @@ import {
   coerceStoryNumber,
   getFramework,
   getPdfInfo,
+  listLanguages,
   listResourcesForLanguage,
   loadStoryBundle,
 } from "../../src/content/contentService.js";
@@ -10,6 +11,7 @@ import {
   emptyEnv,
   restoreFetch,
   stubDcsFetch,
+  stubIndonesianDcsFetch,
 } from "../helpers/mockDcsFetch.js";
 
 describe("contentService", () => {
@@ -40,18 +42,38 @@ describe("contentService", () => {
     expect(fw.source?.formationStories).toMatch(/formationstories\.org/);
   });
 
-  it("lists resources for en (DCS) and id (local-md fallback)", async () => {
+  it("lists resources for en (DCS) and id (local-md, no PDF fallback)", async () => {
     const en = await listResourcesForLanguage("en", emptyEnv());
     expect(en.resources.some((r) => r.id === "obs-tf" && r.available)).toBe(
       true,
     );
-    expect(en.resources.find((r) => r.id === "obs-tf")?.source).toBe("door43");
+    const enRow = en.resources.find((r) => r.id === "obs-tf");
+    expect(enRow?.source).toBe("door43");
+    expect(enRow?.owner).toBe("unfoldingWord");
+    expect(enRow?.repo).toBe("en_obs_tf");
+    expect(en.resources.some((r) => r.id === "obs-tf-pdf")).toBe(false);
 
     const id = await listResourcesForLanguage("id", emptyEnv());
-    expect(id.resources.some((r) => r.id === "obs-tf-pdf")).toBe(true);
+    expect(id.resources.some((r) => r.id === "obs-tf-pdf")).toBe(false);
     const structured = id.resources.find((r) => r.id === "obs-tf");
     expect(structured?.available).toBe(true);
     expect(structured?.source).toBe("local-md");
+
+    const none = await listResourcesForLanguage("xx", emptyEnv());
+    expect(none.resources).toHaveLength(1);
+    expect(none.resources[0]?.available).toBe(false);
+    expect(none.resources[0]?.source).toBe("none");
+
+    const langs = await listLanguages(emptyEnv());
+    expect(langs.languages.some((l) => l.code === "en" && l.sources.includes("dcs-obs-tf"))).toBe(
+      true,
+    );
+    expect(langs.languages.some((l) => l.code === "id" && l.sources.includes("local-md"))).toBe(
+      true,
+    );
+    expect(langs.languages.some((l) => l.sources.includes("self-hosted-pdf-text"))).toBe(
+      false,
+    );
   });
 
   it("getPdfInfo returns Indonesian story URLs and extracted text", () => {
@@ -67,6 +89,31 @@ describe("contentService", () => {
     expect(info?.text).toMatch(/Dosa Memasuki Dunia|Observasi/i);
     expect(getPdfInfo("en", 1, {})).toBeNull();
     expect(getPdfInfo("id", 50, {})).toBeNull();
+  });
+
+  it("loads Indonesian from DCS when catalog has an id entry", async () => {
+    stubIndonesianDcsFetch();
+
+    const resources = await listResourcesForLanguage("id", emptyEnv());
+    const row = resources.resources.find((r) => r.id === "obs-tf");
+    expect(row?.available).toBe(true);
+    expect(row?.source).toBe("door43");
+    expect(row?.owner).toBe("unfoldingWord");
+    expect(row?.repo).toBe("id_obs_tf");
+
+    const langs = await listLanguages(emptyEnv());
+    const idLang = langs.languages.find((l) => l.code === "id");
+    expect(idLang?.sources).toContain("dcs-obs-tf");
+    expect(idLang?.owner).toBe("unfoldingWord");
+    expect(idLang?.repo).toBe("id_obs_tf");
+
+    const bundle = await loadStoryBundle("id", 1, emptyEnv());
+    expect(bundle.sourceKind).toBe("dcs");
+    expect(bundle.dcsRepo).toEqual({
+      owner: "unfoldingWord",
+      repo: "id_obs_tf",
+    });
+    expect(bundle.story.meta.subtitle).toBe("Penciptaan dari DCS");
   });
 
   it("loadStoryBundle falls back to local-md for Indonesian", async () => {

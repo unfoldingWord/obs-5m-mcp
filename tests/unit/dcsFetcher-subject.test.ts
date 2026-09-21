@@ -9,6 +9,7 @@ import {
   emptyEnv,
   restoreFetch,
   stubDcsFetch,
+  stubIndonesianDcsFetch,
 } from "../helpers/mockDcsFetch.js";
 
 describe("dcsFetcher subject resolution", () => {
@@ -32,6 +33,27 @@ describe("dcsFetcher subject resolution", () => {
     expect(owner).toBe("unfoldingWord");
     expect(repo).toBe("custom-obs-theological-formation");
     expect(markdown).toMatch(/title:/);
+  });
+
+  it("resolves Indonesian from DCS catalog subject search", async () => {
+    stubIndonesianDcsFetch();
+    const ref = await resolveObsTfRepo("id", emptyEnv());
+    expect(ref).toEqual(
+      expect.objectContaining({
+        language: "id",
+        owner: "unfoldingWord",
+        repo: "id_obs_tf",
+        subject: "OBS Theological Formation",
+      }),
+    );
+    const { markdown, owner, repo } = await fetchStoryMarkdown(
+      "id",
+      1,
+      emptyEnv(),
+    );
+    expect(owner).toBe("unfoldingWord");
+    expect(repo).toBe("id_obs_tf");
+    expect(markdown).toMatch(/Penciptaan dari DCS/);
   });
 
   it("returns null when catalog has no subject hit for language", async () => {

@@ -3,9 +3,8 @@
  *
  * Resolution order per language/story:
  *   1. DCS catalog subject=OBS Theological Formation + topic=tc-ready → structured markdown
- *   2. Local converted MD (PDF → obs_tf) when DCS has nothing
- *   3. Coarse PDF plain-text fallback
- *   4. RESOURCE_NOT_FOUND / PDF URL via get_pdf
+ *   2. Local converted MD when DCS has nothing
+ *   3. RESOURCE_NOT_FOUND (get_pdf is download-only; not a study-text fallback)
  */
 
 import movementsData from "../../data/movements.json";
@@ -16,6 +15,7 @@ import {
   fetchTransclusionMap,
   hasObsTfOnDcs,
   listObsTfLanguages,
+  resolveObsTfRepo,
   type DcsEnv,
 } from "./dcsFetcher.js";
 import {
@@ -29,17 +29,14 @@ import {
   getIndonesianManifest,
   getIndonesianStory,
   getIndonesianText,
-  hasIndonesianPdfs,
-  hasIndonesianText,
-  listIndonesianStories,
   pdfPublicUrl,
 } from "./indonesianStore.js";
 import {
   getLocalStoryMarkdown,
   getLocalTransclusionMap,
   hasLocalObsTfStory,
+  listLocalObsTfLanguages,
 } from "./localObsTfStore.js";
-import { pdfTextToParsedStory } from "./pdfTextBundle.js";
 import { ErrorCode, isObs5mError, Obs5mError } from "../core/errors.js";
 
 export interface ContentEnv extends DcsEnv {
@@ -54,7 +51,7 @@ export interface StoryBundle {
   cacheStatus: "hit" | "miss";
   downstreamApiCalls: number;
   /** Where structured content came from */
-  sourceKind: "dcs" | "local-md" | "pdf-text";
+  sourceKind: "dcs" | "local-md";
   /** Catalog owner/repo when sourceKind is dcs (subject search). */
   dcsRepo?: { owner: string; repo: string };
 }
@@ -103,25 +100,6 @@ export function getCollections() {
 
 export function collectionForStory(story: number) {
   return getCollections().find((c) => c.stories.includes(story)) ?? null;
-}
-
-function loadPdfTextBundle(
-  language: string,
-  storyNum: number,
-): StoryBundle | null {
-  if (!(language === "id" || language.startsWith("id-"))) return null;
-  const text = getIndonesianText(storyNum);
-  if (!text) return null;
-  const entry = getIndonesianStory(storyNum);
-  const story = pdfTextToParsedStory(storyNum, text, entry?.title);
-  return {
-    language,
-    story,
-    communityStudy: story.intro.keyIdea || null,
-    cacheStatus: "hit",
-    downstreamApiCalls: 0,
-    sourceKind: "pdf-text",
-  };
 }
 
 function loadLocalMdBundle(
@@ -200,7 +178,7 @@ async function loadDcsBundle(
 
 /**
  * Load study content: DCS OBS Theological Formation (tc-ready) first;
- * then local converted MD; then coarse PDF text.
+ * then local converted MD. No PDF-text fallback.
  */
 export async function loadStoryBundle(
   language: string,
@@ -218,9 +196,6 @@ export async function loadStoryBundle(
 
     const local = loadLocalMdBundle(language, storyNum);
     if (local) return local;
-
-    const pdfBundle = loadPdfTextBundle(language, storyNum);
-    if (pdfBundle) return pdfBundle;
 
     throw err;
   }
@@ -248,32 +223,31 @@ export function movementFromBundle(
 
 export async function listLanguages(env: ContentEnv) {
   const { languages, cacheStatus } = await listObsTfLanguages(env);
-  const out = languages.map((l) => ({
+  const out: Array<{
+    code: string;
+    name: string;
+    sources: string[];
+    owner?: string;
+    repo?: string;
+  }> = languages.map((l) => ({
     code: l.code,
     name: l.name,
-    sources: ["dcs-obs-tf"] as string[],
+    sources: ["dcs-obs-tf"],
+    owner: l.owner,
+    repo: l.repo,
   }));
 
-  if (hasIndonesianPdfs() && !out.some((l) => l.code === "id")) {
-    const idm = getIndonesianManifest();
-    out.push({
-      code: idm.language,
-      name: idm.languageName,
-      sources: ["self-hosted-pdf-text"],
-    });
-  } else if (hasIndonesianPdfs()) {
-    const row = out.find((l) => l.code === "id");
-    if (row && !row.sources.includes("self-hosted-pdf-text")) {
-      row.sources.push("self-hosted-pdf-text");
+  for (const local of listLocalObsTfLanguages()) {
+    const existing = out.find((l) => l.code === local.code);
+    if (existing) {
+      if (!existing.sources.includes("local-md")) existing.sources.push("local-md");
+    } else {
+      out.push({
+        code: local.code,
+        name: local.name,
+        sources: ["local-md"],
+      });
     }
-  }
-
-  if (!out.some((l) => l.code === "id")) {
-    out.push({
-      code: "id",
-      name: "Indonesian",
-      sources: ["self-hosted-pdf-text"],
-    });
   }
 
   return {
@@ -287,50 +261,31 @@ export async function listResourcesForLanguage(
   language: string,
   env: ContentEnv,
 ) {
-  const resources: Array<{
-    id: string;
-    type: string;
-    available: boolean;
-    source: string;
-    description: string;
-  }> = [];
+  const ref = await resolveObsTfRepo(language, env);
+  const hasLocal =
+    hasLocalObsTfStory(language, 1) || hasLocalObsTfStory(language, 2);
+  const available = Boolean(ref) || hasLocal;
+  const source = ref ? "door43" : hasLocal ? "local-md" : "none";
 
-  const isId = language === "id" || language.startsWith("id-");
-  const onDcs = await hasObsTfOnDcs(language, env);
-  const hasLocal = hasLocalObsTfStory(language, 1) || hasLocalObsTfStory(language, 2);
-
-  resources.push({
-    id: "obs-tf",
-    type: "structured",
-    available: onDcs || hasLocal || (isId && hasIndonesianText(1)),
-    source: onDcs
-      ? "door43"
-      : hasLocal
-        ? "local-md"
-        : isId
-          ? "self-hosted-pdf-text"
-          : "none",
-    description: onDcs
-      ? `OBS + Theological Formation from DCS catalog (subject=OBS Theological Formation, topic=tc-ready)`
-      : hasLocal
-        ? "Converted OBS-TF markdown (PDF → en_obs_tf structure) — DCS has no entry for this language"
-        : isId
-          ? "Indonesian study text extracted from self-hosted PDFs (DCS has no id OBS TF yet)"
-          : `No DCS OBS Theological Formation (tc-ready) for "${language}"`,
-  });
-
-  if (isId) {
-    resources.push({
-      id: "obs-tf-pdf",
-      type: "pdf",
-      available: hasIndonesianPdfs(),
-      source: "self-hosted",
-      description:
-        "Self-hosted Indonesian OBS Five Movements PDFs (R2) — use when you need the file; text is also available via fetch_obs_study_manual",
-    });
-  }
-
-  return { language, resources };
+  return {
+    language,
+    resources: [
+      {
+        id: "obs-tf",
+        type: "structured",
+        abbreviation: "OBS-TF",
+        subject: "OBS Theological Formation",
+        available,
+        source,
+        ...(ref ? { owner: ref.owner, repo: ref.repo } : {}),
+        description: ref
+          ? `OBS + Theological Formation from DCS (${ref.owner}/${ref.repo}, subject=OBS Theological Formation, topic=tc-ready)`
+          : hasLocal
+            ? "Converted OBS-TF markdown (en_obs_tf structure) — DCS has no catalog entry for this language"
+            : `No OBS Theological Formation (tc-ready) for "${language}"`,
+      },
+    ],
+  };
 }
 
 export async function listStories(
@@ -350,30 +305,7 @@ export async function listStories(
     storyNums = [...col.stories];
   }
 
-  const isId = language === "id" || language.startsWith("id-");
   const onDcs = await hasObsTfOnDcs(language, env);
-
-  if (isId && !onDcs) {
-    const idStories = listIndonesianStories();
-    const byNum = new Map(idStories.map((s) => [s.story, s]));
-    return {
-      language,
-      stories: storyNums.map((n) => {
-        const entry = byNum.get(n);
-        const col = collectionForStory(n);
-        return {
-          story: n,
-          title: entry?.title ?? STORY_TITLE_FALLBACK[n] ?? `Story ${n}`,
-          collection: col?.name ?? null,
-          collectionId: col?.id ?? null,
-          hasPdf: Boolean(entry),
-          hasStructured: hasLocalObsTfStory(language, n) || hasIndonesianText(n),
-        };
-      }),
-      downstreamApiCalls: 0,
-      cacheStatus: "hit" as const,
-    };
-  }
 
   return {
     language,
@@ -384,8 +316,7 @@ export async function listStories(
         title: STORY_TITLE_FALLBACK[n] ?? `OBS Story ${n}`,
         collection: col?.name ?? null,
         collectionId: col?.id ?? null,
-        hasPdf: false,
-        hasStructured: onDcs,
+        hasStructured: onDcs || hasLocalObsTfStory(language, n),
       };
     }),
     downstreamApiCalls: 0,
@@ -416,7 +347,7 @@ export function getPdfInfo(
     textAvailable: Boolean(text),
     license: getIndonesianManifest().license,
     note:
-      "Prefer fetch_obs_study_manual for study content. PDF URL is for download; text field carries extracted content when available.",
+      "Download-only. Prefer fetch_obs_study_manual / list_resources for study content — PDF text is not a fallback source.",
   };
 }
 

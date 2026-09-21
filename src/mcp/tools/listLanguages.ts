@@ -12,7 +12,7 @@ const inputSchema = z.object({});
 export const listLanguagesTool: ToolModule<typeof inputSchema> = {
   name: "list_languages",
   description:
-    "List languages with OBS Five Movements content. Prefers DCS catalog (subject=OBS Theological Formation, topic=tc-ready); Indonesian may use self-hosted PDF text when absent from DCS.",
+    "List languages with OBS Theological Formation content. Door43 catalog (subject=OBS Theological Formation, topic=tc-ready), plus languages with shipped converted markdown. Does not include PDF-only fallbacks.",
   inputSchema,
   outputSchema: withNotAvailableOutput({
     languages: z.array(z.record(z.unknown())).optional(),

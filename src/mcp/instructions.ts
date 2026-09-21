@@ -10,7 +10,7 @@ ${OBS_FORMATION_CONTEXT}
 1. Prefer **DCS**: subject \`OBS Theological Formation\` + topic \`tc-ready\` + stage \`prod\`.
 2. When DCS has no entry (e.g. Indonesian), use converted OBS-TF markdown via the same tools.
 3. Packaging (shared \`![[transclusion]]\` vs story-inline) is already resolved — never ask the user to open TX files.
-4. \`get_pdf\` is only for the downloadable Indonesian PDF; study answers come from \`fetch_obs_study_manual\`.
+4. There is no PDF-text fallback. \`list_resources\` reports catalog / converted markdown only. \`get_pdf\` is download-only when the client asks for the file.
 
 ## Primary tool
 - **fetch_obs_study_manual** — preferred.
@@ -27,7 +27,7 @@ ${OBS_FORMATION_CONTEXT}
 4. Walk \`sessionFlow\` with fetch_obs_study_manual \`part=…\` (one slice at a time)
 5. Typical order: intro → frames → community → movement1 → movement2 → drafting → movement3 → checking → movement4 → movement5 → conclusion
 6. Helpers: get_story, get_devotional, get_movement, get_study_guide
-7. get_pdf — Indonesian PDF URL only when requested
+7. get_pdf — Indonesian PDF URL only when the client asks to download the file (not a study source)
 
 ## Notes
 - Default language **en** (Door43 catalog subject OBS Theological Formation, tc-ready). Use language=id for Indonesian.

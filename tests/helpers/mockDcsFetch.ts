@@ -10,13 +10,25 @@ export function loadFixture(rel: string): string {
   return readFileSync(path.join(fixtureDir, rel), "utf8");
 }
 
+export interface CatalogStubEntry {
+  language: string;
+  language_title?: string;
+  name: string;
+  owner?: string;
+  subject?: string;
+}
+
 /**
  * Stub global fetch for Door43 catalog (subject=OBS Theological Formation) + raw URLs.
  * Catalog returns owner/repo; fetches use those paths (no invented `{lang}_obs_tf`).
  */
 export function stubDcsFetch(opts?: {
-  /** Override catalog repo name to prove we don't hardcode `_obs_tf`. */
+  /** Override English catalog repo name to prove we don't hardcode `_obs_tf`. */
   repoName?: string;
+  /** Extra catalog rows (e.g. Indonesian `id_obs_tf` on DCS). */
+  extraCatalog?: CatalogStubEntry[];
+  /** Story markdown served from a repo path, keyed by repo name. Defaults to EN fixture. */
+  storyMarkdownByRepo?: Record<string, string>;
 }): void {
   const repoName = opts?.repoName ?? "en_obs_tf";
   const story1 = loadFixture("obs_story_1.md");
@@ -29,6 +41,10 @@ export function stubDcsFetch(opts?: {
     "obs-devotionals-unit-3.md": loadFixture(
       "transclusions/obs-devotionals-unit-3.md",
     ),
+  };
+  const storyByRepo: Record<string, string> = {
+    [repoName]: story1,
+    ...opts?.storyMarkdownByRepo,
   };
 
   vi.stubGlobal(
@@ -55,6 +71,13 @@ export function stubDcsFetch(opts?: {
             owner: "unfoldingWord",
             subject: "OBS Theological Formation",
           },
+          ...(opts?.extraCatalog ?? []).map((e) => ({
+            language: e.language,
+            language_title: e.language_title ?? e.language,
+            name: e.name,
+            owner: e.owner ?? "unfoldingWord",
+            subject: e.subject ?? "OBS Theological Formation",
+          })),
         ];
         const data = lang
           ? all.filter((e) => e.language === lang.toLowerCase())
@@ -64,16 +87,19 @@ export function stubDcsFetch(opts?: {
           headers: { "Content-Type": "application/json" },
         });
       }
-      const repoPath = `/${repoName}/`;
-      if (url.includes(repoPath) && url.includes("obs_story_1.md")) {
-        return new Response(story1, { status: 200 });
-      }
-      if (url.includes(repoPath) && url.includes("/transclusions/")) {
-        const decoded = decodeURIComponent(url);
-        const file = decoded.split("/transclusions/")[1] ?? "";
-        const body = trans[file];
-        if (body) return new Response(body, { status: 200 });
-        return new Response("missing", { status: 404 });
+      for (const [repo, markdown] of Object.entries(storyByRepo)) {
+        const repoPath = `/${repo}/`;
+        if (!url.includes(repoPath)) continue;
+        if (url.includes("obs_story_1.md")) {
+          return new Response(markdown, { status: 200 });
+        }
+        if (url.includes("/transclusions/")) {
+          const decoded = decodeURIComponent(url);
+          const file = decoded.split("/transclusions/")[1] ?? "";
+          const body = trans[file];
+          if (body) return new Response(body, { status: 200 });
+          return new Response("missing", { status: 404 });
+        }
       }
       if (url.includes("obs_story_") || url.includes("/transclusions/")) {
         return new Response("not found", { status: 404 });
@@ -85,6 +111,30 @@ export function stubDcsFetch(opts?: {
 
 export function restoreFetch(): void {
   vi.unstubAllGlobals();
+}
+
+/** Distinctive DCS Indonesian story so tests can tell it apart from local-md. */
+export function indonesianDcsStoryMarkdown(): string {
+  return loadFixture("obs_story_1.md").replace(
+    "subtitle: The Creation",
+    "subtitle: Penciptaan dari DCS",
+  );
+}
+
+export function stubIndonesianDcsFetch(): void {
+  stubDcsFetch({
+    extraCatalog: [
+      {
+        language: "id",
+        language_title: "Indonesian",
+        name: "id_obs_tf",
+        owner: "unfoldingWord",
+      },
+    ],
+    storyMarkdownByRepo: {
+      id_obs_tf: indonesianDcsStoryMarkdown(),
+    },
+  });
 }
 
 export function emptyEnv() {

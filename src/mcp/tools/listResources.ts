@@ -15,7 +15,7 @@ const inputSchema = z.object({
 export const listResourcesTool: ToolModule<typeof inputSchema> = {
   name: "list_resources",
   description:
-    "List OBS Five Movements resource types available for a language (structured obs-tf and/or self-hosted obs-tf-pdf).",
+    "List OBS Theological Formation availability for a language. Returns structured obs-tf from the Door43 catalog (subject=OBS Theological Formation, topic=tc-ready) or shipped converted markdown. Does not advertise PDF text as a study source.",
   inputSchema,
   outputSchema: withNotAvailableOutput({
     language: z.string().optional(),

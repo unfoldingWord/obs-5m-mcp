@@ -106,12 +106,17 @@ async function main() {
   }
   console.log("OK fetch_obs_study_manual (+ xray)");
 
+  const resourcesEn = await postJson("/api/tool", {
+    tool: "list_resources",
+    arguments: { language: "en" },
+  });
+  if (!resourcesEn.ok) fail(`list_resources en → ${resourcesEn.status}`);
   const resources = await postJson("/api/tool", {
     tool: "list_resources",
     arguments: { language: "id" },
   });
   if (!resources.ok) fail(`list_resources id → ${resources.status}`);
-  console.log("OK list_resources id");
+  console.log("OK list_resources en + id");
 
   console.log("Smoke passed.");
 }

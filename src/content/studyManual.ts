@@ -255,18 +255,11 @@ export function buildStudyManualPayload(
         ? {
             kind: "local-md",
             note:
-              "DCS has no OBS Theological Formation (tc-ready) for this language; content converted from self-hosted PDF into en_obs_tf-shaped markdown. Shared and story-unique sections are resolved for you.",
+              "DCS has no OBS Theological Formation (tc-ready) for this language; content is shipped converted markdown in en_obs_tf shape. Shared and story-unique sections are resolved for you.",
             storyPath: `obs_story_${ref.story}.md`,
             license: "CC BY-SA 4.0",
           }
-        : bundle.sourceKind === "pdf-text"
-          ? {
-              kind: "self-hosted-pdf-text",
-              note:
-                "DCS catalog has no OBS Theological Formation (tc-ready) for this language; coarse PDF text fallback (run npm run convert:id for structured MD).",
-              license: "CC BY-SA 4.0",
-            }
-          : {
+        : {
               kind: "dcs",
               owner: bundle.dcsRepo?.owner ?? "unfoldingWord",
               repo: bundle.dcsRepo?.repo ?? "unknown",

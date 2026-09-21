@@ -14,6 +14,18 @@ const BUNDLES: Record<string, LocalObsTfBundle> = {
   id: idBundle as LocalObsTfBundle,
 };
 
+const LOCAL_LANGUAGE_NAMES: Record<string, string> = {
+  id: "Indonesian",
+};
+
+/** Languages with shipped converted OBS-TF markdown (not PDF text). */
+export function listLocalObsTfLanguages(): Array<{ code: string; name: string }> {
+  return Object.keys(BUNDLES).map((code) => ({
+    code,
+    name: LOCAL_LANGUAGE_NAMES[code] ?? code,
+  }));
+}
+
 export function getLocalObsTfBundle(
   language: string,
 ): LocalObsTfBundle | null {
