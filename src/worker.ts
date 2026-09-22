@@ -29,16 +29,16 @@ import { renderAgentGuidePage } from "./docs/agentGuidePage.js";
 import { apiDiscoveryJson, renderHomePage } from "./docs/homePage.js";
 import { enforceOptionalMcpApiKey } from "./core/mcpAuth.js";
 import { enforceRateLimit } from "./core/rateLimit.js";
+import {
+  gateStreamableHttpMethods,
+  MCP_AGENT_CORS_OPTIONS,
+  MCP_CORS,
+} from "./core/mcpStreamableHttp.js";
 
-const mcpHandler = Obs5mMCP.serve("/mcp", { binding: "MCP_AGENT" });
-
-/** Same Streamable HTTP CORS gate as Translation Helps (`GET` SSE + `DELETE` session). */
-const MCP_CORS = {
-  "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Methods": "GET, POST, DELETE, OPTIONS",
-  "Access-Control-Allow-Headers":
-    "Content-Type, Authorization, X-Api-Key, Mcp-Session-Id",
-};
+const mcpHandler = Obs5mMCP.serve("/mcp", {
+  binding: "MCP_AGENT",
+  corsOptions: MCP_AGENT_CORS_OPTIONS,
+});
 
 export { Obs5mMCP };
 
@@ -66,6 +66,8 @@ export default {
       if (authDenied) return authDenied;
       const limited = enforceRateLimit(request, env.RATE_LIMIT_RPM, MCP_CORS);
       if (limited) return limited;
+      const gated = gateStreamableHttpMethods(request);
+      if (gated) return gated;
       return mcpHandler.fetch(request, env, ctx);
     }
 
