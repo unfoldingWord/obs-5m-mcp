@@ -267,24 +267,30 @@ export async function listResourcesForLanguage(
   const available = Boolean(ref) || hasLocal;
   const source = ref ? "door43" : hasLocal ? "local-md" : "none";
 
+  const resources = [
+    {
+      id: "obs-tf",
+      type: "structured",
+      abbreviation: "OBS-TF",
+      subject: "OBS Theological Formation",
+      available,
+      source,
+      ...(ref ? { owner: ref.owner, repo: ref.repo } : {}),
+      description: ref
+        ? `OBS + Theological Formation from DCS (${ref.owner}/${ref.repo}, subject=OBS Theological Formation, topic=tc-ready)`
+        : hasLocal
+          ? "Converted OBS-TF markdown (en_obs_tf structure) — DCS has no catalog entry for this language"
+          : `No OBS Theological Formation (tc-ready) for "${language}"`,
+    },
+  ];
+
   return {
     language,
-    resources: [
-      {
-        id: "obs-tf",
-        type: "structured",
-        abbreviation: "OBS-TF",
-        subject: "OBS Theological Formation",
-        available,
-        source,
-        ...(ref ? { owner: ref.owner, repo: ref.repo } : {}),
-        description: ref
-          ? `OBS + Theological Formation from DCS (${ref.owner}/${ref.repo}, subject=OBS Theological Formation, topic=tc-ready)`
-          : hasLocal
-            ? "Converted OBS-TF markdown (en_obs_tf structure) — DCS has no catalog entry for this language"
-            : `No OBS Theological Formation (tc-ready) for "${language}"`,
-      },
-    ],
+    // Same contract as Translation Helps v2 `list_resources`: `available` holds
+    // only the rows that exist for the language. Consumers that pick a parser
+    // from the tool name (BT Servant Resources panel) read this array.
+    available: resources.filter((r) => r.available),
+    resources,
   };
 }
 

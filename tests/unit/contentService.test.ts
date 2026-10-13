@@ -64,6 +64,11 @@ describe("contentService", () => {
     expect(none.resources[0]?.available).toBe(false);
     expect(none.resources[0]?.source).toBe("none");
 
+    // `available` mirrors Translation Helps v2: only the rows that exist.
+    expect(en.available.map((r) => r.id)).toEqual(["obs-tf"]);
+    expect(id.available.map((r) => r.id)).toEqual(["obs-tf"]);
+    expect(none.available).toEqual([]);
+
     const langs = await listLanguages(emptyEnv());
     expect(langs.languages.some((l) => l.code === "en" && l.sources.includes("dcs-obs-tf"))).toBe(
       true,
