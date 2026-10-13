@@ -33,6 +33,7 @@ export const getPdfTool: ToolModule<typeof inputSchema> = {
     r2Key: z.string().optional(),
     text: z.string().optional(),
     textAvailable: z.boolean().optional(),
+    license: z.string().optional(),
     note: z.string().optional(),
   }),
   annotations: { readOnlyHint: true, title: "Get PDF" },

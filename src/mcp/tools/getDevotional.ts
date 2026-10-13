@@ -27,6 +27,7 @@ export const getDevotionalTool: ToolModule<typeof inputSchema> = {
   outputSchema: withNotAvailableOutput({
     language: z.string().optional(),
     story: z.number().optional(),
+    title: z.string().optional(),
     communityStudy: z.string().nullable().optional(),
     ref: z.record(z.unknown()).nullable().optional(),
   }),

@@ -16,6 +16,8 @@ export const listLanguagesTool: ToolModule<typeof inputSchema> = {
   inputSchema,
   outputSchema: withNotAvailableOutput({
     languages: z.array(z.record(z.unknown())).optional(),
+    cacheStatus: z.string().optional(),
+    downstreamApiCalls: z.number().optional(),
   }),
   annotations: { readOnlyHint: true, title: "List Languages" },
   async handler(_params, env) {

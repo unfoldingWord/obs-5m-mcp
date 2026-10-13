@@ -58,10 +58,24 @@ export const notAvailableOutputFields = {
   hints: z.array(z.string()).optional(),
 } as const;
 
+/**
+ * Budget metadata that `ok()` attaches to success payloads. It is declared on
+ * every tool because the SDK advertises output schemas as closed objects
+ * (additionalProperties: false): a client that validates structuredContent
+ * rejects any field the schema does not name.
+ */
+export const metaOutputFields = {
+  _meta: z.record(z.unknown()).optional(),
+} as const;
+
 export function withNotAvailableOutput(
   successFields: Record<string, z.ZodTypeAny>,
 ): Record<string, z.ZodTypeAny> {
-  return { ...successFields, ...notAvailableOutputFields };
+  return {
+    ...successFields,
+    ...metaOutputFields,
+    ...notAvailableOutputFields,
+  };
 }
 
 export function ok(
