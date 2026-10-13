@@ -4,13 +4,10 @@
 
 import { McpAgent } from "agents/mcp";
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
-import { z } from "zod";
 import { VERSION, SERVER_NAME } from "../core/version.js";
-import { logger } from "../core/logger.js";
-import { isObs5mError, ErrorCode } from "../core/errors.js";
 import { SERVER_INSTRUCTIONS } from "./instructions.js";
-import { MCP_TOOLS } from "./toolRegistry.js";
 import { PROMPTS } from "./prompts/index.js";
+import { registerTools } from "./registerTools.js";
 
 export interface Env {
   MCP_AGENT: DurableObjectNamespace;
@@ -28,13 +25,6 @@ export interface Env {
   RATE_LIMIT_RPM?: string;
 }
 
-function mcpError(err: { code: string; message: string }) {
-  return {
-    content: [{ type: "text" as const, text: `Error ${err.code}: ${err.message}` }],
-    isError: true as const,
-  };
-}
-
 export class Obs5mMCP extends McpAgent<Env> {
   server = new McpServer(
     { name: SERVER_NAME, version: VERSION },
@@ -42,59 +32,7 @@ export class Obs5mMCP extends McpAgent<Env> {
   );
 
   async init(): Promise<void> {
-    for (const tool of MCP_TOOLS) {
-      const { name, description, inputSchema, outputSchema, annotations, handler } =
-        tool;
-
-      const schemaShape =
-        inputSchema instanceof z.ZodEffects
-          ? (inputSchema.innerType() as z.ZodObject<z.ZodRawShape>).shape
-          : (inputSchema as z.ZodObject<z.ZodRawShape>).shape;
-
-      this.server.registerTool(
-        name,
-        {
-          title: annotations.title,
-          description,
-          inputSchema: schemaShape as Record<string, z.ZodTypeAny>,
-          ...(outputSchema ? { outputSchema } : {}),
-          annotations: {
-            readOnlyHint: annotations.readOnlyHint,
-            ...(annotations.destructiveHint !== undefined
-              ? { destructiveHint: annotations.destructiveHint }
-              : {}),
-          },
-        },
-        async (params: Record<string, unknown>) => {
-          const requestId = crypto.randomUUID();
-          try {
-            logger.info("tool:call", { tool: name, requestId });
-            const result = await handler(params as never, this.env, requestId);
-            return result as never;
-          } catch (err) {
-            if (isObs5mError(err)) {
-              logger.error("tool:error", {
-                tool: name,
-                requestId,
-                code: err.code,
-                message: err.message,
-              });
-              return mcpError(err.toMcpError()) as never;
-            }
-            const message = err instanceof Error ? err.message : String(err);
-            logger.error("tool:unexpected_error", {
-              tool: name,
-              requestId,
-              message,
-            });
-            return mcpError({
-              code: ErrorCode.INTERNAL_ERROR,
-              message: `Internal error in ${name}: ${message}`,
-            }) as never;
-          }
-        },
-      );
-    }
+    registerTools(this.server, () => this.env);
 
     for (const prompt of PROMPTS) {
       this.server.prompt(

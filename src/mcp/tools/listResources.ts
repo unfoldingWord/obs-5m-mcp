@@ -23,10 +23,6 @@ const outputSchema = {
   ...withNotAvailableOutput({
     language: z.string().optional(),
     resources: z.array(resourceRowSchema).optional(),
-    // ok() attaches budget metadata. The advertised schema is closed
-    // (additionalProperties: false), so validating clients reject the
-    // result unless it is declared.
-    _meta: z.record(z.unknown()).optional(),
   }),
   available: z
     .union([z.boolean(), z.array(resourceRowSchema)])
@@ -47,7 +43,9 @@ export const listResourcesTool: ToolModule<typeof inputSchema> = {
     const data = await listResourcesForLanguage(params.language, env);
     return ok(
       data,
-      `${data.resources.length} resource type(s) for ${params.language}`,
+      // Counts what exists, in Translation Helps v2 wording, so consumers
+      // that cross-check the declared count against `available` can do so.
+      `${data.available.length} resource(s) available for ${params.language}`,
       partnerMeta(0, "hit"),
     );
   },

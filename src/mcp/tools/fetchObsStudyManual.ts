@@ -75,6 +75,8 @@ export const fetchObsStudyManualTool: ToolModule<typeof inputSchema> = {
   inputSchema,
   outputSchema: withNotAvailableOutput({
     resourceType: z.string().optional(),
+    identifier: z.string().optional(),
+    title: z.string().optional(),
     reference: z.string().optional(),
     language: z.string().optional(),
     story: z.number().optional(),
@@ -85,7 +87,9 @@ export const fetchObsStudyManualTool: ToolModule<typeof inputSchema> = {
     storyTitle: z.string().optional(),
     intro: z.record(z.unknown()).optional(),
     frames: z.array(z.record(z.unknown())).optional(),
+    bibleSource: z.string().nullable().optional(),
     communityStudy: z.string().nullable().optional(),
+    communityStudyRef: z.record(z.unknown()).nullable().optional(),
     drafting: z.string().nullable().optional(),
     checking: z.string().nullable().optional(),
     conclusion: z.string().nullable().optional(),

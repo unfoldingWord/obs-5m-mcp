@@ -35,6 +35,7 @@ export const getMovementTool: ToolModule<typeof inputSchema> = {
   outputSchema: withNotAvailableOutput({
     language: z.string().optional(),
     story: z.number().optional(),
+    title: z.string().optional(),
     movement: z.record(z.unknown()).optional(),
   }),
   annotations: { readOnlyHint: true, title: "Get Movement" },

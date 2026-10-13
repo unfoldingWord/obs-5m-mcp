@@ -138,7 +138,7 @@ export function renderAgentGuidePage(baseUrl: string): string {
         </thead>
         <tbody>
           <tr><td><code>list_languages</code></td><td>Languages with OBS-TF content</td></tr>
-          <tr><td><code>list_resources</code></td><td>Availability summary for a language</td></tr>
+          <tr><td><code>list_resources</code></td><td>Availability for a language: <code>available</code> lists what exists (empty when nothing does)</td></tr>
           <tr><td><code>list_collections</code></td><td>Eleven units (Creation → New Creation)</td></tr>
           <tr><td><code>list_stories</code></td><td>Stories 1–50 (optionally by collection)</td></tr>
           <tr><td><code>get_framework</code></td><td>Five Movements definitions + <code>sessionFlow</code> overview</td></tr>

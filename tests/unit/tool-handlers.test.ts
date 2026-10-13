@@ -84,6 +84,7 @@ describe("tool handlers (mocked DCS)", () => {
     );
     const schema = z.object(listResourcesTool.outputSchema!);
     expect(schema.safeParse(result.structuredContent).success).toBe(true);
+    expect(result.content[0]?.text).toBe("1 resource(s) available for en");
 
     // Consumers such as the BT Servant worker read the JSON text block and
     // take `abbreviation` + `subject` from each `available` row.
@@ -114,6 +115,8 @@ describe("tool handlers (mocked DCS)", () => {
       resources: Array<{ available: boolean }>;
     };
     expect(sc.available).toEqual([]);
+    // The summary must not claim a resource the language does not have.
+    expect(result.content[0]?.text).toBe("0 resource(s) available for xx");
     // The per-row flag stays, so existing readers of `resources` keep working.
     expect(sc.resources).toHaveLength(1);
     expect(sc.resources[0]?.available).toBe(false);

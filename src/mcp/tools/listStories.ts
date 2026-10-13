@@ -27,6 +27,8 @@ export const listStoriesTool: ToolModule<typeof inputSchema> = {
   outputSchema: withNotAvailableOutput({
     language: z.string().optional(),
     stories: z.array(z.record(z.unknown())).optional(),
+    cacheStatus: z.string().optional(),
+    downstreamApiCalls: z.number().optional(),
   }),
   annotations: { readOnlyHint: true, title: "List Stories" },
   async handler(params, env) {

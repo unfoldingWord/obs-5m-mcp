@@ -31,6 +31,7 @@ export const searchContentTool: ToolModule<typeof inputSchema> = {
   inputSchema,
   outputSchema: withNotAvailableOutput({
     query: z.string().optional(),
+    language: z.string().optional(),
     hits: z.array(z.record(z.unknown())).optional(),
   }),
   annotations: { readOnlyHint: true, title: "Search Content" },
