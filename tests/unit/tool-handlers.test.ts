@@ -1,4 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
+import { z } from "zod";
 import { fetchObsStudyManualTool } from "../../src/mcp/tools/fetchObsStudyManual.js";
 import { getFrameworkTool } from "../../src/mcp/tools/getFramework.js";
 import { getPdfTool } from "../../src/mcp/tools/getPdf.js";
@@ -73,6 +74,49 @@ describe("tool handlers (mocked DCS)", () => {
     expect(
       (fw.structuredContent as { movements: unknown[] }).movements,
     ).toHaveLength(5);
+  });
+
+  it("list_resources returns `available` rows like Translation Helps v2", async () => {
+    const result = await listResourcesTool.handler(
+      { language: "en" },
+      emptyEnv(),
+      "t",
+    );
+    const schema = z.object(listResourcesTool.outputSchema!);
+    expect(schema.safeParse(result.structuredContent).success).toBe(true);
+
+    // Consumers such as the BT Servant worker read the JSON text block and
+    // take `abbreviation` + `subject` from each `available` row.
+    const payload = JSON.parse(result.content.at(-1)!.text) as {
+      available: Array<Record<string, unknown>>;
+      resources: Array<Record<string, unknown>>;
+    };
+    expect(payload.available).toEqual([
+      expect.objectContaining({
+        abbreviation: "OBS-TF",
+        subject: "OBS Theological Formation",
+      }),
+    ]);
+    expect(payload.resources).toHaveLength(1);
+  });
+
+  it("list_resources returns an empty `available` for a language without OBS-TF", async () => {
+    const result = await listResourcesTool.handler(
+      { language: "xx" },
+      emptyEnv(),
+      "t",
+    );
+    expect(result.isError).toBe(false);
+    const schema = z.object(listResourcesTool.outputSchema!);
+    expect(schema.safeParse(result.structuredContent).success).toBe(true);
+    const sc = result.structuredContent as {
+      available: unknown[];
+      resources: Array<{ available: boolean }>;
+    };
+    expect(sc.available).toEqual([]);
+    // The per-row flag stays, so existing readers of `resources` keep working.
+    expect(sc.resources).toHaveLength(1);
+    expect(sc.resources[0]?.available).toBe(false);
   });
 
   it("get_pdf returns URL and extracted text for indonesian story 1", async () => {
