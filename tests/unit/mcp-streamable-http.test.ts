@@ -44,20 +44,30 @@ describe("gateStreamableHttpMethods (TH Streamable HTTP contract)", () => {
     );
   });
 
-  it("GET with session opens an SSE listen stream", () => {
+  it("GET with session answers 405: no standalone SSE stream (#6)", async () => {
+    // The server sends nothing unprompted. A stream that is never written is
+    // canceled by the Workers runtime as hung, and SDK clients then re-open
+    // it about once a second. The spec allows 405 here, and SDK clients
+    // treat it as "no stream" without retrying.
     const res = gateStreamableHttpMethods(
       mcp("GET", {
         Accept: "text/event-stream",
         "mcp-session-id": "abc",
       }),
     );
-    expect(res?.status).toBe(200);
-    expect(res!.headers.get("Content-Type")).toBe("text/event-stream");
-    expect(res!.headers.get("mcp-session-id")).toBe("abc");
-    expect(res!.headers.get("Access-Control-Allow-Methods")).toContain(
-      "DELETE",
-    );
-    void res!.body?.cancel();
+    expect(res?.status).toBe(405);
+    expect(res!.headers.get("Allow")).toBe("POST, DELETE, OPTIONS");
+    expect(res!.headers.get("Content-Type")).not.toBe("text/event-stream");
+    expect(res!.headers.get("Access-Control-Allow-Origin")).toBe("*");
+    expect(await res!.json()).toEqual({
+      jsonrpc: "2.0",
+      error: {
+        code: -32000,
+        message:
+          "Method Not Allowed: this server does not offer a standalone SSE stream",
+      },
+      id: null,
+    });
   });
 
   it("DELETE without session is 400 like TH", async () => {
@@ -78,7 +88,7 @@ describe("gateStreamableHttpMethods (TH Streamable HTTP contract)", () => {
     );
   });
 
-  it("DELETE with session ends the session", () => {
+  it("DELETE with session answers 200 like TH (agent session is not torn down)", () => {
     const res = gateStreamableHttpMethods(
       mcp("DELETE", { "mcp-session-id": "abc" }),
     );

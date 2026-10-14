@@ -3,8 +3,16 @@
  *
  * `agents` 0.0.97 `McpAgent.serve()` only implements POST and returns 405
  * for GET/DELETE. TH production implements GET (SSE listen) and DELETE
- * (session end). This gate matches those error (and listen/end) responses
- * so clients and browsers see the same status/body as TH.
+ * (session end). This gate answers with TH's error responses (406/400) so
+ * clients and browsers see the same status/body as TH, and answers DELETE
+ * with a session with 200 as TH does. It does not tear down the agent's
+ * session.
+ *
+ * A GET that would open the standalone SSE stream gets 405 instead (#6):
+ * this server never sends anything unprompted, and a stream that is never
+ * written is canceled by the Workers runtime as hung, after which SDK
+ * clients re-open it about once a second. The spec allows 405 for a server
+ * without that stream, and SDK clients treat it as "no stream".
  */
 
 /** Worker OPTIONS / auth / rate-limit CORS (matches TH worker wrapper). */
@@ -42,6 +50,7 @@ function jsonRpc(
   message: string,
   fieldOrder: "th-get-session" | "th-jsonrpc-first",
   cors: boolean,
+  extraHeaders: Record<string, string> = {},
 ): Response {
   const error = { code: -32000, message };
   const body =
@@ -53,6 +62,7 @@ function jsonRpc(
     headers: {
       "Content-Type": PLAIN,
       ...(cors ? AGENT_CORS_HEADERS : {}),
+      ...extraHeaders,
     },
   });
 }
@@ -83,17 +93,13 @@ export function gateStreamableHttpMethods(request: Request): Response | null {
         false,
       );
     }
-    const { readable } = new TransformStream();
-    return new Response(readable, {
-      status: 200,
-      headers: {
-        "Content-Type": "text/event-stream",
-        "Cache-Control": "no-cache",
-        Connection: "keep-alive",
-        "mcp-session-id": sessionId,
-        ...AGENT_CORS_HEADERS,
-      },
-    });
+    return jsonRpc(
+      405,
+      "Method Not Allowed: this server does not offer a standalone SSE stream",
+      "th-jsonrpc-first",
+      true,
+      { Allow: "POST, DELETE, OPTIONS" },
+    );
   }
 
   if (method === "DELETE") {
