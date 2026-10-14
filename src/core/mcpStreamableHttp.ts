@@ -3,9 +3,10 @@
  *
  * `agents` 0.0.97 `McpAgent.serve()` only implements POST and returns 405
  * for GET/DELETE. TH production implements GET (SSE listen) and DELETE
- * (session end). This gate matches TH's error responses (406/400) so
- * clients and browsers see the same status/body as TH, and ends sessions
- * on DELETE.
+ * (session end). This gate answers with TH's error responses (406/400) so
+ * clients and browsers see the same status/body as TH, and answers DELETE
+ * with a session with 200 as TH does. It does not tear down the agent's
+ * session.
  *
  * A GET that would open the standalone SSE stream gets 405 instead (#6):
  * this server never sends anything unprompted, and a stream that is never
@@ -49,6 +50,7 @@ function jsonRpc(
   message: string,
   fieldOrder: "th-get-session" | "th-jsonrpc-first",
   cors: boolean,
+  extraHeaders: Record<string, string> = {},
 ): Response {
   const error = { code: -32000, message };
   const body =
@@ -60,6 +62,7 @@ function jsonRpc(
     headers: {
       "Content-Type": PLAIN,
       ...(cors ? AGENT_CORS_HEADERS : {}),
+      ...extraHeaders,
     },
   });
 }
@@ -90,24 +93,12 @@ export function gateStreamableHttpMethods(request: Request): Response | null {
         false,
       );
     }
-    return new Response(
-      JSON.stringify({
-        jsonrpc: "2.0",
-        error: {
-          code: -32000,
-          message:
-            "Method Not Allowed: this server does not offer a standalone SSE stream",
-        },
-        id: null,
-      }),
-      {
-        status: 405,
-        headers: {
-          "Content-Type": "application/json",
-          Allow: "POST, DELETE, OPTIONS",
-          ...AGENT_CORS_HEADERS,
-        },
-      },
+    return jsonRpc(
+      405,
+      "Method Not Allowed: this server does not offer a standalone SSE stream",
+      "th-jsonrpc-first",
+      true,
+      { Allow: "POST, DELETE, OPTIONS" },
     );
   }
 

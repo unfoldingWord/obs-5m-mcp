@@ -88,7 +88,7 @@ describe("gateStreamableHttpMethods (TH Streamable HTTP contract)", () => {
     );
   });
 
-  it("DELETE with session ends the session", () => {
+  it("DELETE with session answers 200 like TH (agent session is not torn down)", () => {
     const res = gateStreamableHttpMethods(
       mcp("DELETE", { "mcp-session-id": "abc" }),
     );
