@@ -109,6 +109,24 @@ export function stubDcsFetch(opts?: {
   );
 }
 
+/**
+ * On top of the current fetch stub, answer Door43 story fetches for the given
+ * story numbers with HTTP 500, as during an outage. Other requests pass through.
+ */
+export function failStoryFetches(storyNums: number[]): void {
+  const inner = globalThis.fetch;
+  vi.stubGlobal(
+    "fetch",
+    vi.fn(async (input: RequestInfo | URL, init?: RequestInit) => {
+      const url = String(input);
+      if (storyNums.some((n) => url.includes(`obs_story_${n}.md`))) {
+        return new Response("upstream error", { status: 500 });
+      }
+      return inner(input, init);
+    }),
+  );
+}
+
 export function restoreFetch(): void {
   vi.unstubAllGlobals();
 }

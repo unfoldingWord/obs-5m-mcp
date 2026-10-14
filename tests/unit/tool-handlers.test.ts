@@ -4,8 +4,10 @@ import { fetchObsStudyManualTool } from "../../src/mcp/tools/fetchObsStudyManual
 import { getFrameworkTool } from "../../src/mcp/tools/getFramework.js";
 import { getPdfTool } from "../../src/mcp/tools/getPdf.js";
 import { listResourcesTool } from "../../src/mcp/tools/listResources.js";
+import { searchContentTool } from "../../src/mcp/tools/searchContent.js";
 import {
   emptyEnv,
+  failStoryFetches,
   restoreFetch,
   stubDcsFetch,
   stubIndonesianDcsFetch,
@@ -178,5 +180,50 @@ describe("tool handlers (mocked DCS)", () => {
     expect(sc.source?.kind).toBe("local-md");
     expect((sc.movements ?? []).length).toBeGreaterThan(0);
     expect((sc.frames ?? []).length).toBe(12);
+  });
+});
+
+// #7: a story that fails to load must not look like a story without matches.
+describe("search_content when Door43 fails (mocked DCS)", () => {
+  beforeEach(() => {
+    stubDcsFetch();
+  });
+  afterEach(() => {
+    restoreFetch();
+  });
+
+  const search = (maxStories: number) =>
+    searchContentTool.handler(
+      { query: "creation", language: "en", maxStories },
+      emptyEnv(),
+      "t",
+    );
+
+  it("still skips stories the language does not publish", async () => {
+    // The stub serves story 1 only; story 2 is a 404, i.e. not published.
+    const result = await search(2);
+    const sc = result.structuredContent as { hits: unknown[]; failedStories?: number[] };
+    expect(result.isError).toBe(false);
+    expect(sc.hits.length).toBeGreaterThan(0);
+    expect(sc.failedStories).toBeUndefined();
+    expect(result.content[0]?.text).toBe(`${sc.hits.length} hit(s)`);
+  });
+
+  it("reports the stories it could not search", async () => {
+    failStoryFetches([2]);
+    const result = await search(2);
+    const sc = result.structuredContent as { hits: unknown[]; failedStories?: number[] };
+    expect(result.isError).toBe(false);
+    expect(sc.hits.length).toBeGreaterThan(0);
+    expect(sc.failedStories).toEqual([2]);
+    expect(result.content[0]?.text).toMatch(/could not be searched/);
+  });
+
+  it("fails instead of returning 0 hits when no story could be loaded", async () => {
+    failStoryFetches([1]);
+    await expect(search(1)).rejects.toMatchObject({
+      code: "UPSTREAM_DCS_ERROR",
+      retryable: true,
+    });
   });
 });
