@@ -386,13 +386,27 @@ describe("budget metadata for catalog lookups (mocked DCS)", () => {
     // yy: filtered search misses, the full catalog is now cached.
     const second = await listResourcesTool.handler({ language: "yy" }, env, "t");
     expect(metaOf(second)).toEqual({ downstream_api_calls: 1, cache_status: "partial" });
+    // The X-ray / chat loop status keeps "partial" too.
+    expect(second.cacheStatus).toBe("partial");
   });
 
   it("list_stories reports its catalog lookup in _meta only", async () => {
-    const result = await listStoriesTool.handler({ language: "en" }, cachedEnv(), "t");
+    const env = cachedEnv();
+    const result = await listStoriesTool.handler({ language: "en" }, env, "t");
     expect(metaOf(result)).toEqual({ downstream_api_calls: 1, cache_status: "miss" });
     expect(result.structuredContent).not.toHaveProperty("cacheStatus");
     expect(result.structuredContent).not.toHaveProperty("downstreamApiCalls");
+    const warm = await listStoriesTool.handler({ language: "en" }, env, "t");
+    expect(metaOf(warm)).toEqual({ downstream_api_calls: 0, cache_status: "hit" });
+  });
+
+  it("search_content reports miss when every story missed the cache", async () => {
+    const env = cachedEnv();
+    const args = { query: "creation", language: "en", maxStories: 2 };
+    const cold = await searchContentTool.handler(args, env, "t");
+    expect(metaOf(cold)).toMatchObject({ cache_status: "miss" });
+    const warm = await searchContentTool.handler(args, env, "t");
+    expect(metaOf(warm)).toMatchObject({ cache_status: "hit" });
   });
 
   it("list_languages reports its catalog lookup in _meta only", async () => {

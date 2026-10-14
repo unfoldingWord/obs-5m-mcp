@@ -6,6 +6,7 @@
  * Owner/repo come from catalog hits — never invent `{lang}_obs_tf`.
  */
 
+import { combineCacheStatus } from "../core/cacheStatus.js";
 import { ErrorCode, Obs5mError } from "../core/errors.js";
 import { logger } from "../core/logger.js";
 import { xrayPush } from "../core/xray/context.js";
@@ -228,12 +229,10 @@ export async function resolveObsTfRepoWithMeta(
     searches.push(all.cacheStatus);
     matches = all.entries.filter((e) => e.language === code);
   }
-  const misses = searches.filter((s) => s === "miss").length;
   return {
     ref: pickPreferredObsTfEntry(matches) ?? null,
-    downstreamApiCalls: misses,
-    cacheStatus:
-      misses === 0 ? "hit" : misses === searches.length ? "miss" : "partial",
+    downstreamApiCalls: searches.filter((s) => s === "miss").length,
+    cacheStatus: combineCacheStatus(searches),
   };
 }
 

@@ -3,6 +3,7 @@ import {
   loadStoryBundle,
   searchInStory,
 } from "../../content/contentService.js";
+import { combineCacheStatus } from "../../core/cacheStatus.js";
 import { ErrorCode, isObs5mError, Obs5mError } from "../../core/errors.js";
 import { logger } from "../../core/logger.js";
 import {
@@ -66,7 +67,7 @@ export const searchContentTool: ToolModule<typeof inputSchema> = {
       snippet: string;
     }> = [];
     let downstream = 0;
-    let anyMiss = false;
+    const cacheStatuses: Array<"hit" | "miss"> = [];
     let searched = 0;
     const failedStories: number[] = [];
     let firstFailure: unknown;
@@ -75,7 +76,7 @@ export const searchContentTool: ToolModule<typeof inputSchema> = {
       try {
         const bundle = await loadStoryBundle(params.language, n, env);
         downstream += bundle.downstreamApiCalls;
-        if (bundle.cacheStatus === "miss") anyMiss = true;
+        cacheStatuses.push(bundle.cacheStatus === "miss" ? "miss" : "hit");
         const found = searchInStory(bundle.story, params.query);
         for (const f of found) {
           hits.push({
@@ -125,7 +126,7 @@ export const searchContentTool: ToolModule<typeof inputSchema> = {
           ? `; ${failedStories.length === 1 ? "story" : "stories"} ${failedStories.join(", ")} ` +
             "could not be searched, so results are incomplete"
           : ""),
-      partnerMeta(downstream, anyMiss ? "partial" : "hit"),
+      partnerMeta(downstream, combineCacheStatus(cacheStatuses)),
     );
   },
 };
