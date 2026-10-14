@@ -3,10 +3,12 @@
  *
  * Resolution order per language/story:
  *   1. DCS catalog subject=OBS Theological Formation + topic=tc-ready → structured markdown
- *   2. Local converted MD when DCS has nothing
- *   3. RESOURCE_NOT_FOUND (get_pdf is download-only; not a study-text fallback)
+ *   2. Local converted MD when DCS has nothing, or when DCS cannot be reached
+ *   3. RESOURCE_NOT_FOUND when DCS has nothing, UPSTREAM_DCS_ERROR when it
+ *      could not be reached (get_pdf is download-only; not a study-text fallback)
  */
 
+import { logger } from "../core/logger.js";
 import movementsData from "../../data/movements.json";
 import collectionsData from "../../data/collections.json";
 import storyTitlesEn from "../../data/story-titles-en.json";
@@ -190,12 +192,25 @@ export async function loadStoryBundle(
   try {
     return await loadDcsBundle(language, storyNum, env);
   } catch (err) {
+    // Not published on DCS, or DCS unreachable: serve shipped markdown when
+    // the language has it, so an outage does not take local content down.
     const isMissing =
       isObs5mError(err) && err.code === ErrorCode.RESOURCE_NOT_FOUND;
-    if (!isMissing) throw err;
+    const isUpstream =
+      isObs5mError(err) && err.code === ErrorCode.UPSTREAM_DCS_ERROR;
+    if (!isMissing && !isUpstream) throw err;
 
     const local = loadLocalMdBundle(language, storyNum);
-    if (local) return local;
+    if (local) {
+      if (isUpstream) {
+        logger.warn("content:dcs_unavailable_serving_local", {
+          language,
+          story: storyNum,
+          message: err.message,
+        });
+      }
+      return local;
+    }
 
     throw err;
   }

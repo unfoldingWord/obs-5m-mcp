@@ -178,8 +178,16 @@ export async function searchObsTfCatalog(
     await kvPut(env.OBS_5M_CACHE, key, JSON.stringify(entries), CATALOG_TTL_SECONDS);
     return { entries, cacheStatus: "miss" };
   } catch (err) {
+    // An unreachable catalog must not read as "no OBS-TF for this language":
+    // callers would answer RESOURCE_NOT_AVAILABLE for content that exists.
     logger.warn("dcs:catalog_search_failed", { message: String(err), lang });
-    return { entries: [], cacheStatus: "miss" };
+    throw new Obs5mError({
+      code: ErrorCode.UPSTREAM_DCS_ERROR,
+      message:
+        `Door43 catalog search failed${lang ? ` for "${lang}"` : ""}: ` +
+        (err instanceof Error ? err.message : String(err)),
+      retryable: true,
+    });
   }
 }
 
@@ -214,6 +222,7 @@ export async function resolveObsTfOwner(
 
 /**
  * True when DCS catalog lists OBS Theological Formation for this language (tc-ready).
+ * Throws UPSTREAM_DCS_ERROR when the catalog cannot be reached.
  */
 export async function hasObsTfOnDcs(
   language: string,
@@ -259,7 +268,18 @@ export async function fetchStoryMarkdown(
 
   const url = storyRawUrl(owner, repo, storyNum);
   const t0 = Date.now();
-  const res = await fetch(url);
+  let res: Response;
+  try {
+    res = await fetch(url);
+  } catch (err) {
+    throw new Obs5mError({
+      code: ErrorCode.UPSTREAM_DCS_ERROR,
+      message:
+        `Door43 fetch failed for ${url}: ` +
+        (err instanceof Error ? err.message : String(err)),
+      retryable: true,
+    });
+  }
   const ms = Date.now() - t0;
   xrayPush({
     type: "dcs_fetch",
@@ -318,7 +338,18 @@ export async function fetchTransclusionMarkdown(
 
   const url = transclusionRawUrl(owner, repo, file);
   const t0 = Date.now();
-  const res = await fetch(url);
+  let res: Response;
+  try {
+    res = await fetch(url);
+  } catch (err) {
+    // Same as an HTTP error for this transclusion: the story renders without
+    // it, and the failure is logged rather than escaping as a raw error.
+    logger.warn("dcs:transclusion_fetch_failed", {
+      file,
+      message: err instanceof Error ? err.message : String(err),
+    });
+    return null;
+  }
   const ms = Date.now() - t0;
   xrayPush({
     type: "dcs_fetch",
