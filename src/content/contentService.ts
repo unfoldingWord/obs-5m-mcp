@@ -15,9 +15,8 @@ import storyTitlesEn from "../../data/story-titles-en.json";
 import {
   fetchStoryMarkdown,
   fetchTransclusionMap,
-  hasObsTfOnDcs,
   listObsTfLanguages,
-  resolveObsTfRepo,
+  resolveObsTfRepoWithMeta,
   type DcsEnv,
 } from "./dcsFetcher.js";
 import {
@@ -276,7 +275,8 @@ export async function listResourcesForLanguage(
   language: string,
   env: ContentEnv,
 ) {
-  const ref = await resolveObsTfRepo(language, env);
+  const lookup = await resolveObsTfRepoWithMeta(language, env);
+  const { ref } = lookup;
   const hasLocal =
     hasLocalObsTfStory(language, 1) || hasLocalObsTfStory(language, 2);
   const available = Boolean(ref) || hasLocal;
@@ -306,6 +306,8 @@ export async function listResourcesForLanguage(
     // from the tool name (BT Servant Resources panel) read this array.
     available: resources.filter((r) => r.available),
     resources,
+    downstreamApiCalls: lookup.downstreamApiCalls,
+    cacheStatus: lookup.cacheStatus,
   };
 }
 
@@ -326,7 +328,8 @@ export async function listStories(
     storyNums = [...col.stories];
   }
 
-  const onDcs = await hasObsTfOnDcs(language, env);
+  const lookup = await resolveObsTfRepoWithMeta(language, env);
+  const onDcs = lookup.ref !== null;
 
   return {
     language,
@@ -340,8 +343,8 @@ export async function listStories(
         hasStructured: onDcs || hasLocalObsTfStory(language, n),
       };
     }),
-    downstreamApiCalls: 0,
-    cacheStatus: "hit" as const,
+    downstreamApiCalls: lookup.downstreamApiCalls,
+    cacheStatus: lookup.cacheStatus,
   };
 }
 

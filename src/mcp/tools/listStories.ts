@@ -27,16 +27,19 @@ export const listStoriesTool: ToolModule<typeof inputSchema> = {
   outputSchema: withNotAvailableOutput({
     language: z.string().optional(),
     stories: z.array(z.record(z.unknown())).optional(),
-    cacheStatus: z.string().optional(),
-    downstreamApiCalls: z.number().optional(),
   }),
   annotations: { readOnlyHint: true, title: "List Stories" },
   async handler(params, env) {
-    const result = await listStories(params.language, env, params.collection);
+    // The lookup cost belongs in _meta, not in the payload.
+    const { downstreamApiCalls, cacheStatus, ...data } = await listStories(
+      params.language,
+      env,
+      params.collection,
+    );
     return ok(
-      result,
-      `${result.stories.length} stories`,
-      partnerMeta(result.downstreamApiCalls, result.cacheStatus),
+      data,
+      `${data.stories.length} stories`,
+      partnerMeta(downstreamApiCalls, cacheStatus),
     );
   },
 };

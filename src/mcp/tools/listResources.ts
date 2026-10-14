@@ -40,13 +40,14 @@ export const listResourcesTool: ToolModule<typeof inputSchema> = {
   outputSchema,
   annotations: { readOnlyHint: true, title: "List Resources" },
   async handler(params, env) {
-    const data = await listResourcesForLanguage(params.language, env);
+    const { downstreamApiCalls, cacheStatus, ...data } =
+      await listResourcesForLanguage(params.language, env);
     return ok(
       data,
       // Counts what exists, in Translation Helps v2 wording, so consumers
       // that cross-check the declared count against `available` can do so.
       `${data.available.length} resource(s) available for ${params.language}`,
-      partnerMeta(0, "hit"),
+      partnerMeta(downstreamApiCalls, cacheStatus),
     );
   },
 };

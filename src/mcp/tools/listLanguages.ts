@@ -16,19 +16,15 @@ export const listLanguagesTool: ToolModule<typeof inputSchema> = {
   inputSchema,
   outputSchema: withNotAvailableOutput({
     languages: z.array(z.record(z.unknown())).optional(),
-    cacheStatus: z.string().optional(),
-    downstreamApiCalls: z.number().optional(),
   }),
   annotations: { readOnlyHint: true, title: "List Languages" },
   async handler(_params, env) {
-    const result = await listLanguages(env);
+    // The lookup cost belongs in _meta, not in the payload.
+    const { downstreamApiCalls, cacheStatus, ...data } = await listLanguages(env);
     return ok(
-      result,
-      `${result.languages.length} language(s)`,
-      partnerMeta(
-        result.downstreamApiCalls,
-        result.cacheStatus === "hit" ? "hit" : "miss",
-      ),
+      data,
+      `${data.languages.length} language(s)`,
+      partnerMeta(downstreamApiCalls, cacheStatus),
     );
   },
 };

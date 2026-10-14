@@ -6,6 +6,7 @@
  * Owner/repo come from catalog hits — never invent `{lang}_obs_tf`.
  */
 
+import { combineCacheStatus } from "../core/cacheStatus.js";
 import { ErrorCode, Obs5mError } from "../core/errors.js";
 import { logger } from "../core/logger.js";
 import { xrayPush } from "../core/xray/context.js";
@@ -199,16 +200,40 @@ export async function resolveObsTfRepo(
   language: string,
   env: DcsEnv,
 ): Promise<CatalogRepoRef | null> {
+  return (await resolveObsTfRepoWithMeta(language, env)).ref;
+}
+
+/** What a catalog lookup cost, for the `_meta` budget a tool reports. */
+export interface CatalogLookupMeta {
+  /** One per catalog search that missed the cache and went to Door43. */
+  downstreamApiCalls: number;
+  /** "partial" when one search was cached and the other was not. */
+  cacheStatus: "hit" | "miss" | "partial";
+}
+
+/**
+ * resolveObsTfRepo plus what the lookup cost. A language missing from the
+ * language-filtered search triggers a second, unfiltered search.
+ */
+export async function resolveObsTfRepoWithMeta(
+  language: string,
+  env: DcsEnv,
+): Promise<{ ref: CatalogRepoRef | null } & CatalogLookupMeta> {
   const code = language.toLowerCase();
-  const { entries: langEntries } = await searchObsTfCatalog(env, {
-    language: code,
-  });
-  let matches = langEntries.filter((e) => e.language === code);
+  const searches: Array<"hit" | "miss"> = [];
+  const filtered = await searchObsTfCatalog(env, { language: code });
+  searches.push(filtered.cacheStatus);
+  let matches = filtered.entries.filter((e) => e.language === code);
   if (matches.length === 0) {
-    const { entries: all } = await searchObsTfCatalog(env);
-    matches = all.filter((e) => e.language === code);
+    const all = await searchObsTfCatalog(env);
+    searches.push(all.cacheStatus);
+    matches = all.entries.filter((e) => e.language === code);
   }
-  return pickPreferredObsTfEntry(matches) ?? null;
+  return {
+    ref: pickPreferredObsTfEntry(matches) ?? null,
+    downstreamApiCalls: searches.filter((s) => s === "miss").length,
+    cacheStatus: combineCacheStatus(searches),
+  };
 }
 
 /** @deprecated Use resolveObsTfRepo — kept for callers that only need owner. */
@@ -218,17 +243,6 @@ export async function resolveObsTfOwner(
 ): Promise<string> {
   const ref = await resolveObsTfRepo(language, env);
   return ref?.owner ?? PREFERRED_OWNER;
-}
-
-/**
- * True when DCS catalog lists OBS Theological Formation for this language (tc-ready).
- * Throws UPSTREAM_DCS_ERROR when the catalog cannot be reached.
- */
-export async function hasObsTfOnDcs(
-  language: string,
-  env: DcsEnv,
-): Promise<boolean> {
-  return (await resolveObsTfRepo(language, env)) !== null;
 }
 
 export async function fetchStoryMarkdown(

@@ -25,7 +25,7 @@ export interface ToolResult {
   content: Array<{ type: "text"; text: string }>;
   structuredContent?: Record<string, unknown>;
   isError?: boolean;
-  cacheStatus?: "hit" | "miss" | "stale" | "none";
+  cacheStatus?: "hit" | "miss" | "partial" | "stale" | "none";
   /** Partner BT Servant budget metadata (also copied into structuredContent._meta). */
   meta?: {
     downstream_api_calls: number;
@@ -95,12 +95,7 @@ export function ok(
     content,
     structuredContent: structured,
     isError: false,
-    cacheStatus:
-      meta?.cache_status === "hit"
-        ? "hit"
-        : meta?.cache_status === "miss"
-          ? "miss"
-          : "none",
+    cacheStatus: meta?.cache_status ?? "none",
     meta: meta
       ? { ...meta, response_size_bytes: meta.response_size_bytes ?? json.length }
       : undefined,
