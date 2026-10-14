@@ -152,6 +152,17 @@ export function failCatalogFetches(how: "http-500" | "network" = "http-500"): vo
   );
 }
 
+/** In-memory stand-in for the KV cache, so tests can see hits and misses. */
+export function memoryKv(): KVNamespace {
+  const store = new Map<string, string>();
+  return {
+    get: async (key: string) => store.get(key) ?? null,
+    put: async (key: string, value: string) => {
+      store.set(key, value);
+    },
+  } as unknown as KVNamespace;
+}
+
 export function restoreFetch(): void {
   vi.unstubAllGlobals();
 }

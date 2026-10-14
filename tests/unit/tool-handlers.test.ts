@@ -10,6 +10,7 @@ import { listStoriesTool } from "../../src/mcp/tools/listStories.js";
 import { searchContentTool } from "../../src/mcp/tools/searchContent.js";
 import {
   emptyEnv,
+  memoryKv,
   failCatalogFetches,
   failStoryFetches,
   restoreFetch,
@@ -353,5 +354,51 @@ describe("Door43 failures below the catalog (mocked DCS)", () => {
     expect(result.isError).toBe(false);
     const sc = result.structuredContent as { storyTitle?: string };
     expect(sc.storyTitle).toBe("The Creation");
+  });
+});
+
+// #8: `_meta` must count the catalog requests a call actually made.
+describe("budget metadata for catalog lookups (mocked DCS)", () => {
+  beforeEach(() => {
+    stubDcsFetch();
+  });
+  afterEach(() => {
+    restoreFetch();
+  });
+
+  const cachedEnv = () => ({ ...emptyEnv(), OBS_5M_CACHE: memoryKv() });
+  const metaOf = (result: { structuredContent?: Record<string, unknown> }) =>
+    result.structuredContent?._meta;
+
+  it("list_resources counts the catalog search and reports the cache", async () => {
+    const env = cachedEnv();
+    const cold = await listResourcesTool.handler({ language: "en" }, env, "t");
+    expect(metaOf(cold)).toEqual({ downstream_api_calls: 1, cache_status: "miss" });
+    const warm = await listResourcesTool.handler({ language: "en" }, env, "t");
+    expect(metaOf(warm)).toEqual({ downstream_api_calls: 0, cache_status: "hit" });
+  });
+
+  it("list_resources counts the second, unfiltered search for an unlisted language", async () => {
+    const env = cachedEnv();
+    // xx: filtered search (miss) finds nothing, so the full catalog is searched (miss).
+    const first = await listResourcesTool.handler({ language: "xx" }, env, "t");
+    expect(metaOf(first)).toEqual({ downstream_api_calls: 2, cache_status: "miss" });
+    // yy: filtered search misses, the full catalog is now cached.
+    const second = await listResourcesTool.handler({ language: "yy" }, env, "t");
+    expect(metaOf(second)).toEqual({ downstream_api_calls: 1, cache_status: "partial" });
+  });
+
+  it("list_stories reports its catalog lookup in _meta only", async () => {
+    const result = await listStoriesTool.handler({ language: "en" }, cachedEnv(), "t");
+    expect(metaOf(result)).toEqual({ downstream_api_calls: 1, cache_status: "miss" });
+    expect(result.structuredContent).not.toHaveProperty("cacheStatus");
+    expect(result.structuredContent).not.toHaveProperty("downstreamApiCalls");
+  });
+
+  it("list_languages reports its catalog lookup in _meta only", async () => {
+    const result = await listLanguagesTool.handler({}, cachedEnv(), "t");
+    expect(metaOf(result)).toEqual({ downstream_api_calls: 1, cache_status: "miss" });
+    expect(result.structuredContent).not.toHaveProperty("cacheStatus");
+    expect(result.structuredContent).not.toHaveProperty("downstreamApiCalls");
   });
 });

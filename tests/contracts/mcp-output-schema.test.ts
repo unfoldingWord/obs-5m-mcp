@@ -105,8 +105,7 @@ describe("list_languages outputSchema", () => {
     expect(
       schema.safeParse({
         languages: [{ code: "en", name: "English", sources: ["dcs-obs-tf"] }],
-        cacheStatus: "hit",
-        downstreamApiCalls: 0,
+        _meta: { downstream_api_calls: 0, cache_status: "hit" },
       }).success,
     ).toBe(true);
   });
