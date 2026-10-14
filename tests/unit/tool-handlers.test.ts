@@ -1,4 +1,4 @@
-import { afterEach, beforeEach, describe, expect, it } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { z } from "zod";
 import { fetchObsStudyManualTool } from "../../src/mcp/tools/fetchObsStudyManual.js";
 import { getFrameworkTool } from "../../src/mcp/tools/getFramework.js";
@@ -311,5 +311,47 @@ describe("tools when the Door43 catalog request fails (mocked DCS)", () => {
     expect(result.isError).toBe(false);
     const sc = result.structuredContent as { source?: { kind?: string } };
     expect(sc.source?.kind).toBe("local-md");
+  });
+});
+
+describe("Door43 failures below the catalog (mocked DCS)", () => {
+  afterEach(() => {
+    restoreFetch();
+  });
+
+  it("serves Indonesian shipped markdown when the DCS story fetch fails", async () => {
+    // Catalog lists id on DCS, but fetching story 2 there returns HTTP 500.
+    stubIndonesianDcsFetch();
+    failStoryFetches([2]);
+    const result = await fetchObsStudyManualTool.handler(
+      { reference: "2", language: "id", format: "json" },
+      emptyEnv(),
+      "t",
+    );
+    expect(result.isError).toBe(false);
+    const sc = result.structuredContent as { source?: { kind?: string } };
+    expect(sc.source?.kind).toBe("local-md");
+  });
+
+  it("renders a story when a transclusion fetch is rejected by the network", async () => {
+    stubDcsFetch();
+    const inner = globalThis.fetch;
+    vi.stubGlobal(
+      "fetch",
+      vi.fn(async (input: RequestInfo | URL, init?: RequestInit) => {
+        if (String(input).includes("/transclusions/")) {
+          throw new TypeError("Network connection lost.");
+        }
+        return inner(input, init);
+      }),
+    );
+    const result = await fetchObsStudyManualTool.handler(
+      { reference: "1", language: "en", format: "json" },
+      emptyEnv(),
+      "t",
+    );
+    expect(result.isError).toBe(false);
+    const sc = result.structuredContent as { storyTitle?: string };
+    expect(sc.storyTitle).toBe("The Creation");
   });
 });

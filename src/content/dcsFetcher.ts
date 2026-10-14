@@ -222,6 +222,7 @@ export async function resolveObsTfOwner(
 
 /**
  * True when DCS catalog lists OBS Theological Formation for this language (tc-ready).
+ * Throws UPSTREAM_DCS_ERROR when the catalog cannot be reached.
  */
 export async function hasObsTfOnDcs(
   language: string,
@@ -337,7 +338,18 @@ export async function fetchTransclusionMarkdown(
 
   const url = transclusionRawUrl(owner, repo, file);
   const t0 = Date.now();
-  const res = await fetch(url);
+  let res: Response;
+  try {
+    res = await fetch(url);
+  } catch (err) {
+    // Same as an HTTP error for this transclusion: the story renders without
+    // it, and the failure is logged rather than escaping as a raw error.
+    logger.warn("dcs:transclusion_fetch_failed", {
+      file,
+      message: err instanceof Error ? err.message : String(err),
+    });
+    return null;
+  }
   const ms = Date.now() - t0;
   xrayPush({
     type: "dcs_fetch",
