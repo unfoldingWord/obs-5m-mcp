@@ -132,6 +132,26 @@ export function failStoryFetches(
   );
 }
 
+/**
+ * On top of the current fetch stub, make the Door43 catalog search fail as
+ * during an outage: HTTP 500 by default, or a rejected fetch for "network".
+ * Story and transclusion requests pass through.
+ */
+export function failCatalogFetches(how: "http-500" | "network" = "http-500"): void {
+  const inner = globalThis.fetch;
+  vi.stubGlobal(
+    "fetch",
+    vi.fn(async (input: RequestInfo | URL, init?: RequestInit) => {
+      const url = String(input);
+      if (url.includes("/api/v1/catalog/search")) {
+        if (how === "network") throw new TypeError("Network connection lost.");
+        return new Response("upstream error", { status: 500 });
+      }
+      return inner(input, init);
+    }),
+  );
+}
+
 export function restoreFetch(): void {
   vi.unstubAllGlobals();
 }

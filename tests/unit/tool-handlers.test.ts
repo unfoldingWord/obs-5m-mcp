@@ -3,10 +3,14 @@ import { z } from "zod";
 import { fetchObsStudyManualTool } from "../../src/mcp/tools/fetchObsStudyManual.js";
 import { getFrameworkTool } from "../../src/mcp/tools/getFramework.js";
 import { getPdfTool } from "../../src/mcp/tools/getPdf.js";
+import { getStoryTool } from "../../src/mcp/tools/getStory.js";
+import { listLanguagesTool } from "../../src/mcp/tools/listLanguages.js";
 import { listResourcesTool } from "../../src/mcp/tools/listResources.js";
+import { listStoriesTool } from "../../src/mcp/tools/listStories.js";
 import { searchContentTool } from "../../src/mcp/tools/searchContent.js";
 import {
   emptyEnv,
+  failCatalogFetches,
   failStoryFetches,
   restoreFetch,
   stubDcsFetch,
@@ -239,5 +243,73 @@ describe("search_content when Door43 fails (mocked DCS)", () => {
     const sc = result.structuredContent as { hits: unknown[]; failedStories?: number[] };
     expect(sc.hits.length).toBeGreaterThan(0);
     expect(sc.failedStories).toEqual([2]);
+  });
+});
+
+// #10: an unreachable catalog must never read as "OBS-TF does not exist".
+describe("tools when the Door43 catalog request fails (mocked DCS)", () => {
+  beforeEach(() => {
+    stubDcsFetch();
+    failCatalogFetches();
+  });
+  afterEach(() => {
+    restoreFetch();
+  });
+
+  const upstream = { code: "UPSTREAM_DCS_ERROR", retryable: true };
+
+  it("story tools report an upstream error, not RESOURCE_NOT_AVAILABLE", async () => {
+    await expect(
+      getStoryTool.handler({ story: 1, language: "en" }, emptyEnv(), "t"),
+    ).rejects.toMatchObject(upstream);
+    await expect(
+      fetchObsStudyManualTool.handler(
+        { reference: "1:1", language: "en", format: "json" },
+        emptyEnv(),
+        "t",
+      ),
+    ).rejects.toMatchObject(upstream);
+  });
+
+  it("discovery tools report an upstream error instead of no OBS-TF", async () => {
+    await expect(
+      listResourcesTool.handler({ language: "en" }, emptyEnv(), "t"),
+    ).rejects.toMatchObject(upstream);
+    await expect(
+      listStoriesTool.handler({ language: "en" }, emptyEnv(), "t"),
+    ).rejects.toMatchObject(upstream);
+    await expect(
+      listLanguagesTool.handler({}, emptyEnv(), "t"),
+    ).rejects.toMatchObject(upstream);
+  });
+
+  it("search_content fails instead of reporting 0 hits", async () => {
+    await expect(
+      searchContentTool.handler(
+        { query: "creation", language: "en", maxStories: 2 },
+        emptyEnv(),
+        "t",
+      ),
+    ).rejects.toMatchObject(upstream);
+  });
+
+  it("treats a rejected catalog fetch like an HTTP error", async () => {
+    restoreFetch();
+    stubDcsFetch();
+    failCatalogFetches("network");
+    await expect(
+      getStoryTool.handler({ story: 1, language: "en" }, emptyEnv(), "t"),
+    ).rejects.toMatchObject(upstream);
+  });
+
+  it("still serves shipped local markdown for Indonesian", async () => {
+    const result = await fetchObsStudyManualTool.handler(
+      { reference: "2", language: "id", format: "json" },
+      emptyEnv(),
+      "t",
+    );
+    expect(result.isError).toBe(false);
+    const sc = result.structuredContent as { source?: { kind?: string } };
+    expect(sc.source?.kind).toBe("local-md");
   });
 });

@@ -32,6 +32,7 @@ ${OBS_FORMATION_CONTEXT}
 ## Notes
 - Default language **en** (Door43 catalog subject OBS Theological Formation, tc-ready). Use language=id for Indonesian.
 - Missing resources return available:false with RESOURCE_NOT_AVAILABLE (not a tool failure).
+- If Door43 cannot be reached, tools return an UPSTREAM_DCS_ERROR error (retryable), never available:false. Do not tell the user the resource does not exist; say it could not be loaded and retry later. Languages with shipped markdown (Indonesian) are still served.
 - list_resources is the exception: \`available\` is a list of what exists for the language (empty when nothing does), and \`resources\` lists every row with its own available flag.
 - md/text are rendered from the same parsed JSON (never falsely empty).
 - Classic OBS tn/tq/twl live on Translation Helps MCP, not here.
