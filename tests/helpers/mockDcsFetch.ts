@@ -110,16 +110,21 @@ export function stubDcsFetch(opts?: {
 }
 
 /**
- * On top of the current fetch stub, answer Door43 story fetches for the given
- * story numbers with HTTP 500, as during an outage. Other requests pass through.
+ * On top of the current fetch stub, make Door43 story fetches for the given
+ * story numbers fail as during an outage: HTTP 500 by default, or a rejected
+ * fetch for "network". Other requests pass through.
  */
-export function failStoryFetches(storyNums: number[]): void {
+export function failStoryFetches(
+  storyNums: number[],
+  how: "http-500" | "network" = "http-500",
+): void {
   const inner = globalThis.fetch;
   vi.stubGlobal(
     "fetch",
     vi.fn(async (input: RequestInfo | URL, init?: RequestInit) => {
       const url = String(input);
       if (storyNums.some((n) => url.includes(`obs_story_${n}.md`))) {
+        if (how === "network") throw new TypeError("Network connection lost.");
         return new Response("upstream error", { status: 500 });
       }
       return inner(input, init);

@@ -37,6 +37,8 @@ interface RoundTripCase {
   catalog?: "indonesian-dcs";
   /** Story numbers whose Door43 fetch fails with HTTP 500. */
   failingStories?: number[];
+  /** Keys the result must carry, so the case really exercises them. */
+  expectKeys?: string[];
   /** Expect the soft RESOURCE_NOT_AVAILABLE envelope instead of content. */
   notAvailable?: boolean;
 }
@@ -81,7 +83,7 @@ const CASES: RoundTripCase[] = [
   { tool: "get_pdf", label: "language without a PDF", args: { story: 1, language: "en" }, notAvailable: true },
   { tool: "search_content", label: "with hits", args: { query: "creation", language: "en", maxStories: 2 } },
   { tool: "search_content", label: "without hits", args: { query: "zzqqxx", language: "en", maxStories: 1 } },
-  { tool: "search_content", label: "with a story that failed to load", args: { query: "creation", language: "en", maxStories: 2 }, failingStories: [2] },
+  { tool: "search_content", label: "with a story that failed to load", args: { query: "creation", language: "en", maxStories: 2 }, failingStories: [2], expectKeys: ["failedStories"] },
 ];
 
 /** Top-level keys a result carries that its tool's outputSchema does not declare. */
@@ -145,6 +147,9 @@ describe("tool output over the MCP SDK", () => {
       const result = await client!.callTool({ name: c.tool, arguments: c.args });
       expect(result.isError).toBeFalsy();
       const sc = result.structuredContent as { available?: unknown };
+      for (const key of c.expectKeys ?? []) {
+        expect(sc).toHaveProperty(key);
+      }
       if (c.notAvailable) {
         expect(sc.available).toBe(false);
       } else {

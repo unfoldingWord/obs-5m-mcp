@@ -226,4 +226,18 @@ describe("search_content when Door43 fails (mocked DCS)", () => {
       retryable: true,
     });
   });
+
+  it("fails when the only published story fails and the rest are unpublished", async () => {
+    // Story 1 fails; story 2 is a 404. Nothing was searched, so no "0 hits".
+    failStoryFetches([1]);
+    await expect(search(2)).rejects.toMatchObject({ code: "UPSTREAM_DCS_ERROR" });
+  });
+
+  it("reports a story whose fetch was rejected, not only HTTP errors", async () => {
+    failStoryFetches([2], "network");
+    const result = await search(2);
+    const sc = result.structuredContent as { hits: unknown[]; failedStories?: number[] };
+    expect(sc.hits.length).toBeGreaterThan(0);
+    expect(sc.failedStories).toEqual([2]);
+  });
 });
