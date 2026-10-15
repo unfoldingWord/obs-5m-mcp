@@ -19,6 +19,7 @@ import { STUDY_MANUAL_PARTS } from "../../src/content/studyManual.js";
 import type { Env } from "../../src/mcp/agent.js";
 import { registerTools } from "../../src/mcp/registerTools.js";
 import { MCP_TOOLS, TOOL_REGISTRY } from "../../src/mcp/toolRegistry.js";
+import { fetchObsStudyManualTool } from "../../src/mcp/tools/fetchObsStudyManual.js";
 import { listResourcesTool } from "../../src/mcp/tools/listResources.js";
 import { notAvailable } from "../../src/mcp/tools/shared.js";
 import {
@@ -37,16 +38,29 @@ interface RoundTripCase {
   catalog?: "indonesian-dcs";
   /** Story numbers whose Door43 fetch fails with HTTP 500. */
   failingStories?: number[];
-  /** Keys the result must carry, so the case really exercises them. */
-  expectKeys?: string[];
+  /** Case-specific assertions, so the case proves it took the intended path. */
+  check?: (sc: Record<string, unknown>) => void;
   /** Expect the soft RESOURCE_NOT_AVAILABLE envelope instead of content. */
   notAvailable?: boolean;
 }
 
+/** Every output format, from the tool's own input enum, so a new one gets a case. */
+const FORMATS = fetchObsStudyManualTool.inputSchema.shape.format.removeDefault().options;
+
 const CASES: RoundTripCase[] = [
   { tool: "list_languages", label: "catalog languages", args: {} },
-  { tool: "list_resources", label: "language with OBS-TF", args: { language: "en" } },
-  { tool: "list_resources", label: "language without OBS-TF", args: { language: "xx" } },
+  {
+    tool: "list_resources",
+    label: "language with OBS-TF",
+    args: { language: "en" },
+    check: (sc) => expect(sc.available).toEqual([expect.objectContaining({ abbreviation: "OBS-TF" })]),
+  },
+  {
+    tool: "list_resources",
+    label: "language without OBS-TF",
+    args: { language: "xx" },
+    check: (sc) => expect(sc.available).toEqual([]),
+  },
   { tool: "list_collections", label: "all collections", args: {} },
   { tool: "list_stories", label: "all stories", args: { language: "en" } },
   { tool: "list_stories", label: "one collection", args: { language: "en", collection: 1 } },
@@ -60,10 +74,27 @@ const CASES: RoundTripCase[] = [
     label: `json part=${part}`,
     args: { reference: "1", language: "en", part },
   })),
-  { tool: "fetch_obs_study_manual", label: "md", args: { reference: "1", language: "en", format: "md" } },
-  { tool: "fetch_obs_study_manual", label: "text", args: { reference: "1:1", language: "en", format: "text" } },
-  { tool: "fetch_obs_study_manual", label: "Indonesian from DCS", args: { reference: "1", language: "id" }, catalog: "indonesian-dcs" },
-  { tool: "fetch_obs_study_manual", label: "Indonesian local markdown", args: { reference: "2", language: "id" } },
+  ...FORMATS.map((format) => ({
+    tool: "fetch_obs_study_manual",
+    label: `format=${format}`,
+    args: { reference: "1:1", language: "en", format },
+  })),
+  {
+    tool: "fetch_obs_study_manual",
+    label: "Indonesian from DCS",
+    args: { reference: "1", language: "id" },
+    catalog: "indonesian-dcs",
+    check: (sc) => {
+      expect(sc.source).toMatchObject({ kind: "dcs", repo: "id_obs_tf" });
+      expect(sc.storyTitle).toBe("Penciptaan dari DCS");
+    },
+  },
+  {
+    tool: "fetch_obs_study_manual",
+    label: "Indonesian local markdown",
+    args: { reference: "2", language: "id" },
+    check: (sc) => expect(sc.source).toMatchObject({ kind: "local-md" }),
+  },
   { tool: "fetch_obs_study_manual", label: "language without OBS-TF", args: { reference: "1", language: "xx" }, notAvailable: true },
 
   { tool: "get_story", label: "by number", args: { story: 1, language: "en" } },
@@ -83,13 +114,24 @@ const CASES: RoundTripCase[] = [
   { tool: "get_pdf", label: "language without a PDF", args: { story: 1, language: "en" }, notAvailable: true },
   { tool: "search_content", label: "with hits", args: { query: "creation", language: "en", maxStories: 2 } },
   { tool: "search_content", label: "without hits", args: { query: "zzqqxx", language: "en", maxStories: 1 } },
-  { tool: "search_content", label: "with a story that failed to load", args: { query: "creation", language: "en", maxStories: 2 }, failingStories: [2], expectKeys: ["failedStories"] },
+  {
+    tool: "search_content",
+    label: "with a story that failed to load",
+    args: { query: "creation", language: "en", maxStories: 2 },
+    failingStories: [2],
+    check: (sc) => expect(sc.failedStories).toEqual([2]),
+  },
 ];
+
+/** Through JSON, as over HTTP: keys holding `undefined` disappear. */
+function overTheWire<T>(value: T): T {
+  return JSON.parse(JSON.stringify(value ?? {})) as T;
+}
 
 /** Top-level keys a result carries that its tool's outputSchema does not declare. */
 function undeclaredKeys(toolName: string, structuredContent: unknown): string[] {
   const declared = new Set(Object.keys(TOOL_REGISTRY[toolName]?.outputSchema ?? {}));
-  return Object.keys((structuredContent ?? {}) as object).filter(
+  return Object.keys(overTheWire(structuredContent) as object).filter(
     (key) => !declared.has(key),
   );
 }
@@ -98,6 +140,11 @@ function undeclaredKeys(toolName: string, structuredContent: unknown): string[] 
 async function connectValidatingClient(server: McpServer): Promise<Client> {
   const [clientTransport, serverTransport] =
     InMemoryTransport.createLinkedPair();
+  // InMemoryTransport hands objects over by reference. Send every server
+  // message through JSON instead, so the client validates what it would
+  // receive over HTTP.
+  const send = serverTransport.send.bind(serverTransport);
+  serverTransport.send = (message, ...rest) => send(overTheWire(message), ...rest);
   const client = new Client({ name: "obs-5m-test-client", version: "0.0.0" });
   await Promise.all([
     server.connect(serverTransport),
@@ -146,10 +193,8 @@ describe("tool output over the MCP SDK", () => {
 
       const result = await client!.callTool({ name: c.tool, arguments: c.args });
       expect(result.isError).toBeFalsy();
-      const sc = result.structuredContent as { available?: unknown };
-      for (const key of c.expectKeys ?? []) {
-        expect(sc).toHaveProperty(key);
-      }
+      const sc = result.structuredContent as Record<string, unknown>;
+      c.check?.(sc);
       if (c.notAvailable) {
         expect(sc.available).toBe(false);
       } else {
