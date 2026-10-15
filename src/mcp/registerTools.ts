@@ -20,7 +20,7 @@ function mcpError(err: { code: string; message: string }) {
   };
 }
 
-/** `getEnv` is read per call: the agent's env is not set at construction time. */
+/** `getEnv` is read on every call, as the inline registration read `this.env`. */
 export function registerTools(server: McpServer, getEnv: () => Env): void {
   for (const tool of MCP_TOOLS) {
     const { name, description, inputSchema, outputSchema, annotations, handler } =
