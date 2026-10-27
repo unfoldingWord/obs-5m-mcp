@@ -37,16 +37,19 @@
     "zod-to-json-schema": "^3.24.6"
   },
   "devDependencies": {
-    "@cloudflare/workers-types": "^4.20260528.1",
+    "@cloudflare/workers-types": "^5.20260923.1",
     "@playwright/test": "^1.56.1",
     "@types/node": "^20.19.43",
     "tsx": "^4.20.3",
     "typescript": "^5.3.3",
     "vitest": "^3.0.0",
-    "wrangler": "^4.20.0"
+    "wrangler": "^4.140.0"
   },
   "engines": {
     "node": ">=20.0.0"
   },
-  "license": "MIT"
+  "license": "MIT",
+  "overrides": {
+    "partyserver": "0.5.10"
+  }
 }
