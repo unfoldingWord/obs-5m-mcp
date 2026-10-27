@@ -120,8 +120,6 @@ export class McpHttpClient {
 			headers,
 			body: JSON.stringify(payload)
 		});
-		const body = await res.text();
-		const ms = Math.round(performance.now() - started);
 		const sid = res.headers.get('Mcp-Session-Id');
 		if (sid) this.sessionId = sid;
 
@@ -132,15 +130,67 @@ export class McpHttpClient {
 				res.headers.get('Retry-After')
 			);
 		}
-		const message = parseRpcBody(res.headers.get('Content-Type') ?? '', body);
+		const contentType = res.headers.get('Content-Type') ?? '';
+		const id = 'id' in payload ? payload.id : undefined;
+		const { message, bytes } = contentType.includes('text/event-stream')
+			? await readEventStream(res, id)
+			: await readJson(res);
+		const ms = Math.round(performance.now() - started);
 		const exchange: Exchange = {
 			request: payload,
 			response: message,
 			status: res.status,
-			bytes: new TextEncoder().encode(body).length,
+			bytes,
 			ms
 		};
 		if ('id' in payload) this.log.push(exchange);
 		return { message, exchange };
+	}
+}
+
+async function readJson(res: Response): Promise<{ message: unknown; bytes: number }> {
+	const body = await res.text();
+	return {
+		message: parseRpcBody(res.headers.get('Content-Type') ?? '', body),
+		bytes: new TextEncoder().encode(body).length
+	};
+}
+
+/**
+ * Read an SSE response until the message answering `id` arrives, then stop.
+ * The server can keep the stream open after answering, so waiting for the end
+ * would hang.
+ */
+async function readEventStream(
+	res: Response,
+	id: unknown
+): Promise<{ message: unknown; bytes: number }> {
+	if (!res.body) return readJson(res);
+	const reader = res.body.getReader();
+	const decoder = new TextDecoder();
+	let buffer = '';
+	let bytes = 0;
+	let last: unknown = null;
+	try {
+		for (;;) {
+			const { value, done } = await reader.read();
+			if (value) {
+				bytes += value.byteLength;
+				buffer += decoder.decode(value, { stream: true });
+				let cut: number;
+				while ((cut = buffer.search(/\r?\n\r?\n/)) !== -1) {
+					const event = buffer.slice(0, cut);
+					buffer = buffer.slice(cut).replace(/^\r?\n\r?\n/, '');
+					const msg = parseRpcBody('text/event-stream', event) as { id?: unknown } | null;
+					if (msg) last = msg;
+					if (msg && (id === undefined || msg.id === id)) return { message: msg, bytes };
+				}
+			}
+			if (done) break;
+		}
+		const tail = parseRpcBody('text/event-stream', buffer);
+		return { message: tail ?? last, bytes };
+	} finally {
+		reader.cancel().catch(() => {});
 	}
 }

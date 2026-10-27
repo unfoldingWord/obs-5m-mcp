@@ -73,6 +73,29 @@ describe("McpHttpClient", () => {
   });
 });
 
+describe("McpHttpClient with a stream that stays open", () => {
+  it("returns as soon as the answer to its request arrives", async () => {
+    const fetchImpl = (async (_url: unknown, init?: RequestInit) => {
+      const body = JSON.parse(String(init?.body)) as { id?: number; method: string };
+      if (body.id === undefined) return new Response(null, { status: 202 });
+      const event = `event: message\ndata: ${rpc(body.id, { tools: [] })}\n\n`;
+      const stream = new ReadableStream<Uint8Array>({
+        start(controller) {
+          controller.enqueue(new TextEncoder().encode(event));
+          // never closes, like the server's SSE response
+        },
+      });
+      return new Response(stream, { status: 200, headers: { "Content-Type": "text/event-stream" } });
+    }) as typeof fetch;
+    const client = new McpHttpClient("https://x/mcp", fetchImpl);
+    const done = Promise.race([
+      client.initialize().then(() => client.listTools()),
+      new Promise((_, reject) => setTimeout(() => reject(new Error("hung")), 1000)),
+    ]);
+    await expect(done).resolves.toEqual([]);
+  });
+});
+
 describe("classifyOutcome", () => {
   const exchange = { request: {}, response: {}, status: 200, bytes: 1, ms: 1 };
   it("sorts results into the five kinds", () => {
