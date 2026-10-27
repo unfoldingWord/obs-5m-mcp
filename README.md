@@ -1,227 +1,102 @@
 # OBS-TF MCP
 
-**OBS Theological Formation MCP** — a [Model Context Protocol](https://modelcontextprotocol.io/) server that exposes tools so AI assistants and coaches can fetch **Open Bible Stories + Theological Formation (Five Movements)** study content.
+A read-only [Model Context Protocol](https://modelcontextprotocol.io/) server that gives AI assistants the **Open Bible Stories + Theological Formation** study manual (OBS-TF, also called 5M OBS after its Five Movements): fifty stories, each with an introduction, the story panels, a community study, the Five Movements and a conclusion. Content comes from the Door43 catalog. No key or sign-up is needed.
 
-This is a **tool server**, not a standalone translation app. Clients (Claude, Cursor, [BT Servant](https://www.btservant.ai/) coaches, custom agents) connect to `/mcp` and call structured tools. Docs site: [obs-5m-mcp.unfoldingword.workers.dev](https://obs-5m-mcp.unfoldingword.workers.dev).
+- Site: <https://obs-5m-mcp.unfoldingword.workers.dev> (explains the content, lets you try every tool, and shows how to connect clients)
+- MCP endpoint (Streamable HTTP): `https://obs-5m-mcp.unfoldingword.workers.dev/mcp`
+- Theological Formation: [formationstories.org](https://formationstories.org/)
+- Content: [en_obs-tf](https://git.door43.org/unfoldingWord/en_obs-tf) and [id_obs-tf](https://git.door43.org/unfoldingWord/id_obs-tf) on Door43, CC BY-SA 4.0
 
-**Sibling:** [Translation Helps MCP](https://tc-helps.mcp.servant.bible/v2/) — scripture text, TN / TW / TA / TQ, passage tools, classic OBS helps. **This server** — OBS Theological Formation manuals (observe → discuss → draft → check → serve → share).
+## Routes
 
-**Content:** DCS catalog `subject=OBS Theological Formation` + `topic=tc-ready`. English from Door43 [`unfoldingWord/en_obs_tf`](https://git.door43.org/unfoldingWord/en_obs_tf). When DCS has no entry (Indonesian today), tools use converted/local markdown (and PDF text fallback) — not just a download link ([bt-servant-engine#215](https://github.com/unfoldingWord/bt-servant-engine/issues/215)). Primary tool: **`fetch_obs_study_manual`** ([translation-helps-mcp#36](https://github.com/unfoldingWord/translation-helps-mcp/issues/36)).
+| Path | What it is |
+|---|---|
+| `/mcp` | The MCP server (Streamable HTTP) |
+| `/api/tool` | Direct tool call (POST `{ "tool", "arguments" }`); `"debug": true` adds X-ray traces |
+| `/api/mcp-manifest` | Tool catalog as JSON |
+| `/api` | JSON discovery (also `/` with `Accept: application/json`) |
+| `/llms.txt` | Plain-text summary for agents |
+| `/health` | Liveness |
+| `/assets/pdf/<r2Key>` | Indonesian PDF download from R2 |
+| everything else | The website, built from `web/` into `web/dist` |
 
-Content license: **CC BY-SA 4.0** (unfoldingWord / partners).
+`/chat` and `/debug` redirect to `/try`.
 
-## Quick start
+## Local development
 
 ```bash
 npm install
-npm test                 # unit + contracts
-npm run test:unit
-npm run test:contracts
-npm run build:web        # Svelte chat → web/dist (Worker assets)
-npm run dev              # http://localhost:8790
-# Chat UI (needs OPENAI_API_KEY in .dev.vars):
-#   http://localhost:8790/chat
-# Optional Vite HMR (proxies /api/chat to wrangler):
-#   npm run dev:web      # http://localhost:8174/chat
-# with wrangler running:
-npm run test:smoke
+npm install --prefix web
+npm run build:web        # builds the site into web/dist
+npm run dev              # Worker and site on http://localhost:8790
 ```
 
-Copy `.dev.vars.example` → `.dev.vars` and set `OPENAI_API_KEY` for the chat UI. Deployed: `wrangler secret put OPENAI_API_KEY`.
+Open <http://localhost:8790/try> to call the local server from the browser. For live reload of the site, run `npm run dev:web` (Vite on :8174, proxying `/mcp` and `/api` to the Worker on :8790).
 
-**Production (unfoldingWord):** [https://obs-5m-mcp.unfoldingword.workers.dev](https://obs-5m-mcp.unfoldingword.workers.dev)
+`npm run build:web` first refreshes `web/src/lib/anatomy/snapshot.json` (the saved story 1 excerpts shown when the home page cannot reach the server) from Door43, and keeps the existing file when Door43 is unreachable.
 
-Endpoints:
-
-| Path | Purpose |
-|------|---------|
-| `/` | Docs home — what MCP is, what this server provides |
-| `/docs` | **Developer / agent guide** — connect, tool map, `part` / `sessionFlow` |
-| `/mcp` | Streamable HTTP MCP (`GET` SSE, `POST`, `DELETE` session — same setup as Translation Helps) |
-| `/api/mcp-manifest` | Tool catalog JSON |
-| `/api/tool` | Direct tool invoke; pass `"debug": true` for X-ray traces |
-| `/api` | JSON discovery (`Accept: application/json` on `/` also works) |
-| `/chat` | Optional Svelte demo client (same UI locally and in production) |
-| `/api/chat` | Chat SSE API (`status` / `token` / `done`; `"debug": true` for X-ray) |
-| `/debug` | X-ray debug client (tool runner + pipeline report) |
-| `/assets/pdf/<r2Key>` | Stream self-hosted PDF from R2 |
-| `/health` | Liveness |
-
-### Connect to Claude Desktop / Cursor
-
-Same Streamable HTTP setup as Translation Helps. Cursor uses a `url`; Claude Desktop uses `mcp-remote`.
-
-**Cursor** (`.cursor/mcp.json`):
-
-```json
-{
-  "mcpServers": {
-    "obs-tf": {
-      "url": "https://obs-5m-mcp.unfoldingword.workers.dev/mcp"
-    }
-  }
-}
-```
-
-**Claude Desktop** (`claude_desktop_config.json`):
-
-```json
-{
-  "mcpServers": {
-    "obs-tf": {
-      "command": "npx",
-      "args": ["-y", "mcp-remote", "https://obs-5m-mcp.unfoldingword.workers.dev/mcp"]
-    }
-  }
-}
-```
-
-**Direct HTTP** (Streamable MCP):
+## Tests
 
 ```bash
-curl -X POST https://obs-5m-mcp.unfoldingword.workers.dev/mcp \
-  -H "Content-Type: application/json" \
-  -H "Accept: application/json, text/event-stream" \
-  -d '{"jsonrpc":"2.0","id":1,"method":"initialize","params":{"protocolVersion":"2025-03-26","capabilities":{},"clientInfo":{"name":"curl","version":"0"}}}'
+npm run typecheck
+npm test                 # Worker, content and site logic (Vitest)
+npm run check:web        # Svelte type check
+npm run build:web && npm run test:e2e   # browser smoke test (Playwright; starts wrangler dev)
+npm run test:smoke       # against a running server
 ```
 
-`POST` requires `Accept: application/json, text/event-stream`. `GET` opens the SSE listen (needs `Mcp-Session-Id` after initialize). `DELETE` ends the session.
+Install the Playwright browser once with `npx playwright install chromium`.
 
-### Tests & X-ray
+## The site
 
-Modeled on [translation-helps-mcp](https://github.com/unfoldingWord/translation-helps-mcp):
+`web/` is a SvelteKit app with static output. Pages are prerendered; the try page and the story anatomy call the server's own `/mcp` from the browser with a small client (`web/src/lib/mcp/client.ts`). The tool reference (`/tools`) is generated at build time from the server's tool registry, so it always matches the server.
 
-| Suite | Command | What it covers |
-|-------|---------|----------------|
-| Unit | `npm run test:unit` | Parser, study manual, handlers (mocked Door43), X-ray events |
-| Contracts | `npm run test:contracts` | Tool module shape + `outputSchema` / `RESOURCE_NOT_AVAILABLE` |
-| Smoke | `npm run test:smoke` | Live `/health`, manifest, `fetch_obs_study_manual` + X-ray |
+## Previews
 
-**X-ray** (pipeline transparency): POST `/api/tool` with `"debug": true` returns `{ result, xray, xrayReport }`. Open `/debug` for an interactive panel. Chat also supports X-ray via the checkbox on `/chat` (or `"debug": true` on `/api/chat`).
+`wrangler.toml` has a `previews` block for [Cloudflare Worker Previews](https://developers.cloudflare.com/workers/previews/): one isolated copy of the Worker per branch or pull request, with its own Durable Object storage and the preview KV namespace for the cache. To turn previews on, someone with access to the unfoldingWord Cloudflare account must:
 
-### Chat (LLM + MCP tools)
+1. Update Wrangler to 4.135.0 or later. That needs `@cloudflare/workers-types` v5, which first needs a compatible version of `agents` (its `partyserver` dependency still asks for v4).
+2. Connect this repository to Workers Builds, which creates a preview for every pull request. Or add `CLOUDFLARE_API_TOKEN` and the account id as GitHub secrets and run `npx wrangler preview` in a workflow.
 
-One Svelte UI, served by the Worker at `/chat` after `npm run build:web`. Same page locally and in production. `POST /api/chat` stays on the Worker.
+## Deploy
 
 ```bash
-npm run build:web
-npm run dev
-# → http://localhost:8790/chat
+npm run deploy           # builds the site, then wrangler deploy
 ```
 
-Optional Vite HMR while iterating on the UI (`npm run dev:web` → `:8174/chat`) proxies `/api/chat` and `/api/tool` to the Worker on `:8790`.
+The GitHub deploy workflow needs the `CLOUDFLARE_API_TOKEN` secret (see issue #5).
 
-- **Study / Translate / Check** map onto OBS sessionFlow parts (not Bible workflow modes).
-- **Session** side panel lists Five Movements parts (`fetch_obs_study_manual`).
-
-## Tools
-
-Discovery: `list_languages`, `list_resources`, `list_collections`, `list_stories`  
-**Study manual (#36):** `fetch_obs_study_manual`  
-Helpers: `get_framework`, `get_story`, `get_movement`, `get_devotional`, `get_study_guide`, `search_content`  
-PDFs: `get_pdf` (Indonesian pack)
-
-### `fetch_obs_study_manual` (preferred for BT Servant)
-
-```json
-{
-  "tool": "fetch_obs_study_manual",
-  "arguments": {
-    "reference": "1:1",
-    "language": "en",
-    "movement": 1,
-    "format": "json"
-  }
-}
-```
-
-| Param | Description |
-|-------|-------------|
-| `reference` | OBS `story:frame` — `"1:1"`, `"1"` (whole story), `"1:0"` (intro). Optional `obs ` prefix. |
-| `language` | Default `en` (Door43 `en_obs_tf`). |
-| `part` | Optional session slice: `intro` \| `frames` \| `community` \| `movement1`–`5` \| `drafting` \| `checking` \| `conclusion`. Preferred for paced translator sessions. |
-| `movement` | Optional `1`–`5` (same as `part=movementN`). Prefer `part` for drafting/checking/conclusion. |
-| `format` | `json` (default), `md`, or `text` — md/text always render from the same parsed data (never falsely empty). |
-
-Returns intro, frames, Community Study, Observation / Translation / Discourse / Theological / Journal, **drafting**, **checking**, Ministry / Mission, and **conclusion** — packaging resolved (shared TX and story-inline look the same). Response includes `sections` and `sessionFlow` for agent routing.
-
-### Related Translation Helps issues (out of scope here)
-
-| Issue | Topic | Where it lives |
-|-------|--------|----------------|
-| [#36](https://github.com/unfoldingWord/translation-helps-mcp/issues/36) | `en_obs_tf` study manual | **This server** (`fetch_obs_study_manual`) |
-| [#34](https://github.com/unfoldingWord/translation-helps-mcp/issues/34) | OBS tn/tq/sn/sq `format:md` empty | Translation Helps MCP (classic OBS TSV tools) |
-| [#35](https://github.com/unfoldingWord/translation-helps-mcp/issues/35) | OBS translation-word links (`en_obs-twl`) | Translation Helps MCP |
-
-## Indonesian PDFs → OBS-TF markdown (DCS fallback)
-
-Used only when catalog search finds no OBS Theological Formation for `id`.
-
-**Canonical pipeline:** PDF → font-aware plain MD → DCS-shaped MD (do not convert from coarse txt when plain MD is available).
-
-```bash
-# 1) PDF → plain MD (headings, **NN-NN** frames)
-npm run plain-md -- --story=1
-# 2) plain MD → en_obs_tf-shaped MD + transclusions
-npm run convert:id -- --story=1
-# Or generate missing plain MD then convert all:
-npm run convert:id:from-pdf
-# Force re-extract plain MD from PDF, then convert:
-npm run convert:id -- --regen-plain --story=1
-```
-
-Setup steps:
-
-1. Download the zip from [bt-servant-engine#215](https://github.com/unfoldingWord/bt-servant-engine/issues/215) (or Google Drive).
-2. Unpack PDFs into `data/incoming/` (names like `OBS 1 (Indonesia).pdf`).
-3. Optional txt fallback: `npm run ingest:id -- --text-only` → `data/indonesian-text.json`
-4. Run the canonical pipeline above → `data/obs-tf-md/id/obs_story_N.md` with unique sections (community study, divergent movements) inlined, shared movement/conclusion as `![[…]]` transclusions, plus `structure-report.json` (soft metrics: translation terms, skeleton flags, shared-tx drift).
-5. `--offline` uses the story-1 fixture for DCS compare when network is unavailable.
-6. Upload PDF + text to R2: `npm run ingest:id` or `--local` for wrangler dev.
-
-Structure cues live in [`data/structure-maps/id.json`](data/structure-maps/id.json). Runtime prefers converted MD (`sourceKind: local-md`) over coarse PDF text. `get_pdf` still returns the file URL and extracted text.
-
-### Export a Door43 repo tree
-
-After convert, build an upload-ready Resource Container folder (manifest + stories + transclusions):
-
-```bash
-npm run export:dcs
-# or regenerate convert first:
-npm run export:dcs -- --convert
-# custom output:
-npm run export:dcs -- --out=./tmp/id_obs_tf --force
-```
-
-Output: `exports/id_obs_tf/` (gitignored). Create an empty Door43 repo, then `git init` / push from that folder — see `exports/id_obs_tf/README.md`.
-
-## Cloudflare setup
-
-**OBS Theological Formation MCP** (OBS-TF MCP) deploys as a **Cloudflare Worker** (MCP Durable Object + Workers Assets for the chat UI). Cloudflare Workers is the right host for MCP — not a static Pages site alone.
+### Cloudflare setup
 
 ```bash
 npx wrangler kv namespace create OBS_5M_CACHE
 npx wrangler kv namespace create OBS_5M_CACHE --preview
-# Optional (Indonesian PDF hosting) — enable R2 in the dashboard first:
+# Optional, for Indonesian PDF hosting (enable R2 in the dashboard first):
 npx wrangler r2 bucket create obs-5m-mcp-assets
 ```
 
-Paste the KV ids into `wrangler.toml`, set `PUBLIC_BASE_URL` to `https://obs-5m-mcp.unfoldingword.workers.dev`, then:
+Put the KV ids in `wrangler.toml` and set `PUBLIC_BASE_URL`. `RATE_LIMIT_RPM` (default 90 per address, `0` turns it off) and `MCP_API_KEY` (a secret; unset means public) are optional.
+
+## BT Servant
+
+1. Register `https://<worker>/mcp` in the BT Servant admin portal.
+2. Responses carry `_meta.downstream_api_calls`, `_meta.cache_status` and `_meta.response_size_bytes`, as the [MCP integration guidelines](https://github.com/unfoldingWord/bt-servant-worker/blob/main/docs/mcp-integration-guidelines.md) ask.
+3. Smoke check: `list_resources` for `en` and `id`, and `fetch_obs_study_manual` with `reference: "1:1"`, `language: "en"`.
+
+## Indonesian content pipeline
+
+The server serves Indonesian from Door43 (`id_obs-tf`) and falls back to converted markdown shipped in `data/obs-tf-md/id/` when Door43 has no entry for a story.
 
 ```bash
-npm run deploy
-npx wrangler secret put OPENAI_API_KEY
+npm run plain-md -- --story=1          # PDF → plain markdown
+npm run convert:id -- --story=1        # plain markdown → en_obs-tf shape
+npm run convert:id:from-pdf            # generate missing plain markdown, then convert all
+npm run export:dcs                     # build a Door43 repo tree in exports/id_obs_tf/
+npm run ingest:id                      # upload PDFs and text to R2
 ```
 
-Live: [https://obs-5m-mcp.unfoldingword.workers.dev](https://obs-5m-mcp.unfoldingword.workers.dev) · Chat: `/chat` · MCP: `/mcp`
-
-## BT Servant registration
-
-1. Deploy this worker.
-2. Register the MCP URL (`https://<worker>/mcp`) in BT Servant admin (see `bt-servant-worker` curl examples).
-3. Responses include `_meta.downstream_api_calls` and `_meta.cache_status` per [MCP integration guidelines](https://github.com/unfoldingWord/bt-servant-worker/blob/main/docs/mcp-integration-guidelines.md).
-4. Smoke: `list_resources` for `en` (DCS) and `id` (converted markdown, not PDF text); `fetch_obs_study_manual` with `reference: "1:1"`, `language: "en"`.
+Unpack the source PDFs into `data/incoming/` first (names like `OBS 1 (Indonesia).pdf`). Structure cues live in `data/structure-maps/id.json`.
 
 ## Architecture
 
-Modeled on [translation-helps-mcp](https://github.com/unfoldingWord/translation-helps-mcp) v2: Cloudflare Worker + `McpAgent` Durable Object, Zod tools, `RESOURCE_NOT_AVAILABLE` with `isError: false`.
+A Cloudflare Worker with an `McpAgent` Durable Object for `/mcp`, Zod-typed tools (`src/mcp/tools/`), content loading and parsing in `src/content/`, and the static site in `web/`. Missing content answers `available: false` with `RESOURCE_NOT_AVAILABLE` and `isError: false`; Door43 outages answer `UPSTREAM_DCS_ERROR`.

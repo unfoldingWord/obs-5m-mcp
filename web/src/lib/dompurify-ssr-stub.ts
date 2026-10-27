@@ -1,6 +1,4 @@
-/** Workers SSR has no DOM — passthrough stub for isomorphic-dompurify. */
-export default {
-	sanitize(html: string) {
-		return html;
-	}
-};
+// Prerender has no DOM. Markdown is rendered in the browser, so on the server
+// sanitize returns nothing and the component fills in after hydration.
+const stub = { sanitize: (_html: string, _opts?: unknown): string => '' };
+export default stub;

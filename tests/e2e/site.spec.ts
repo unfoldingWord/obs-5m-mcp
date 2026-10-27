@@ -1,0 +1,104 @@
+import { expect, test } from "@playwright/test";
+
+test("home explains what the server serves", async ({ page }) => {
+  await page.goto("/");
+  await expect(page.getByText("Open Bible Stories + Theological Formation").first()).toBeVisible();
+  await expect(page.locator('a[href="https://formationstories.org/"]').first()).toBeVisible();
+});
+
+test("the try page calls this site's own server", async ({ page }) => {
+  const calls: string[] = [];
+  page.on("request", (r) => {
+    if (r.url().endsWith("/mcp")) calls.push(r.url());
+  });
+  await page.goto("/try");
+  await page.getByRole("tab", { name: "Tools" }).click();
+  await page.getByRole("button", { name: "Story 1, Movement 1" }).click();
+  await expect(page.getByText("01-01").first()).toBeVisible({ timeout: 15_000 });
+  expect(calls.length).toBeGreaterThan(0);
+  expect(calls.every((u) => u.startsWith("http://127.0.0.1:8790/"))).toBe(true);
+});
+
+test("one click on an example makes one tool call", async ({ page }) => {
+  const toolCalls: string[] = [];
+  page.on("request", (r) => {
+    if (r.url().endsWith("/mcp") && (r.postData() ?? "").includes('"tools/call"')) toolCalls.push(r.postData()!);
+  });
+  await page.goto("/try");
+  await expect(page.getByText(/Connected/)).toBeVisible({ timeout: 20_000 });
+  await page.getByRole("tab", { name: "Tools" }).click();
+  toolCalls.length = 0;
+  await page.getByRole("button", { name: "Languages", exact: true }).click();
+  await expect(page.getByText("list_languages ·")).toBeVisible({ timeout: 15_000 });
+  await page.waitForTimeout(1500);
+  expect(toolCalls.filter((b) => b.includes("list_languages"))).toHaveLength(1);
+});
+
+test.describe("on a phone, choosing something shows its result", () => {
+  test.use({ viewport: { width: 390, height: 844 } });
+  const inView = async (page: import("@playwright/test").Page, selector: string) => {
+    const box = await page.locator(selector).first().boundingBox();
+    return !!box && box.y < 844 && box.y + 40 > 0;
+  };
+
+  test("guided session: picking a part brings its content into view", async ({ page }) => {
+    await page.goto("/try");
+    await expect(page.getByText(/Connected/)).toBeVisible({ timeout: 20_000 });
+    await page.locator("#g-part").selectOption("movement2");
+    await expect(page.getByRole("heading", { name: /Movement 2/ }).first()).toBeVisible({ timeout: 15_000 });
+    await page.waitForTimeout(800);
+    expect(await inView(page, "[data-result]")).toBe(true);
+  });
+
+  test("tools: running an example brings the result into view", async ({ page }) => {
+    await page.goto("/try");
+    await expect(page.getByText(/Connected/)).toBeVisible({ timeout: 20_000 });
+    await page.getByRole("tab", { name: "Tools" }).click();
+    await expect(page.locator("#t-tool")).toBeVisible();
+    await page.getByRole("button", { name: "Languages", exact: true }).click();
+    await expect(page.getByText("list_languages ·")).toBeVisible({ timeout: 15_000 });
+    await page.waitForTimeout(800);
+    expect(await inView(page, "[data-result]")).toBe(true);
+  });
+
+  test("home anatomy: picking a part brings its card into view", async ({ page }) => {
+    await page.goto("/");
+    await page.locator("#a-part").selectOption("movement5");
+    await page.waitForTimeout(800);
+    expect(await inView(page, "[data-anatomy-card]")).toBe(true);
+  });
+});
+
+test("the limits page only names fields the server sends", async ({ page }) => {
+  await page.goto("/docs/limits");
+  await expect(page.getByRole("heading", { name: "Limits and sizes" })).toBeVisible();
+  await expect(page.getByText("response_size_bytes")).toHaveCount(0);
+});
+
+test("a broken shared link opens the guided session", async ({ page }) => {
+  const errors: string[] = [];
+  page.on("pageerror", (e) => errors.push(e.message));
+  await page.goto("/try#not-a-state");
+  await expect(page.getByRole("tab", { name: "Guided session" })).toHaveAttribute("aria-selected", "true");
+  expect(errors).toEqual([]);
+});
+
+test("the tools page lists the primary tool", async ({ page }) => {
+  await page.goto("/tools");
+  await expect(page.locator("#fetch_obs_study_manual")).toBeVisible();
+});
+
+test("the old chat page redirects to try", async ({ page }) => {
+  await page.goto("/chat");
+  await expect(page).toHaveURL(/\/try/);
+});
+
+for (const path of ["/", "/try", "/connect", "/tools", "/docs", "/docs/sessions"]) {
+  test(`no horizontal scroll on ${path} at phone width`, async ({ page }) => {
+    await page.setViewportSize({ width: 375, height: 800 });
+    await page.goto(path);
+    await page.waitForLoadState("networkidle");
+    const width = (await page.evaluate("document.documentElement.scrollWidth")) as number;
+    expect(width).toBeLessThanOrEqual(375);
+  });
+}
