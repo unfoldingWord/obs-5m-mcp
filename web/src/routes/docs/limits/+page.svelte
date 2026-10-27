@@ -1,5 +1,5 @@
 <script lang="ts">
-	// Sources: src/core/rateLimit.ts, src/mcp/tools/shared.ts (_meta.response_size_bytes).
+	// Sources: src/core/rateLimit.ts, src/mcp/tools/shared.ts (ok(), partnerMeta()).
 </script>
 
 <h1>Limits and sizes</h1>
@@ -16,8 +16,8 @@
 	time, and one panel when that is all the group needs. The try page shows the size of every answer.
 </p>
 <p>
-	Every answer carries <code>_meta</code> with <code>downstream_api_calls</code>,
-	<code>cache_status</code> and <code>response_size_bytes</code>, so a client can track what a call
+	Successful answers carry <code>_meta</code> with <code>downstream_api_calls</code> (how many
+	Door43 requests the call needed) and <code>cache_status</code>, so a client can track what a call
 	cost.
 </p>
 

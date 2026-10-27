@@ -1,11 +1,12 @@
 <script lang="ts">
-	import { onMount, untrack } from 'svelte';
+	import { onDestroy, onMount, untrack } from 'svelte';
 	import { ArrowLeft, ArrowRight } from 'lucide-svelte';
 	import ResultViewer from '$lib/components/ResultViewer.svelte';
 	import { endpoint } from '$lib/endpoint.svelte';
 	import { hasParam, run, type RunResult } from '$lib/mcp/session';
 	import type { ToolInfo } from '$lib/mcp/client';
 	import type { TryState } from './hashState';
+	import { validPanels } from './panels';
 
 	let {
 		tools,
@@ -57,10 +58,17 @@
 	const canChooseView = $derived(hasParam(tools, 'fetch_obs_study_manual', 'include_answers'));
 	const part = $derived(flow[step] ?? 'intro');
 	const reference = $derived(range.trim() ? `${story}:${range.trim()}` : String(story));
-	const rangeOk = $derived(range.trim() === '' || /^\d+(-\d+)?$/.test(range.trim()));
+	// Ranges arrived with include_answers (unfoldingWord/obs-5m-mcp#18); older servers read only the first panel.
+	const supportsRanges = $derived(canChooseView);
+	const rangeOk = $derived(validPanels(range, supportsRanges));
+
+	// Calls can finish after the tab changes; a closed session must not report state.
+	let alive = true;
+	onDestroy(() => (alive = false));
 
 	async function loadStories() {
 		const { result } = await run(endpoint(), 'list_stories', { language: lang });
+		if (!alive) return;
 		const list = result?.structured?.stories;
 		stories = Array.isArray(list) ? (list as typeof stories) : [];
 		if (stories.length && !stories.some((s) => s.story === story)) story = stories[0].story;
@@ -71,7 +79,9 @@
 		pending = true;
 		const args: Record<string, unknown> = { reference, part, language: lang, format: 'md' };
 		if (canChooseView && view === 'community') args.include_answers = false;
-		answer = await run(endpoint(), 'fetch_obs_study_manual', args);
+		const next = await run(endpoint(), 'fetch_obs_study_manual', args);
+		if (!alive) return;
+		answer = next;
 		const sf = answer.result?.structured?.sessionFlow;
 		if (Array.isArray(sf) && sf.length && sf.every((x) => typeof x === 'string')) {
 			const current = part;
@@ -89,10 +99,11 @@
 
 	onMount(async () => {
 		const { result } = await run(endpoint(), 'list_languages', {});
+		if (!alive) return;
 		const list = result?.structured?.languages;
 		languages = Array.isArray(list) ? (list as typeof languages) : [{ code: 'en', name: 'English' }];
 		await loadStories();
-		await show();
+		if (alive) await show();
 	});
 
 	const control =
@@ -126,13 +137,15 @@
 			<input
 				id="g-range"
 				class={control}
-				placeholder="5 or 5-8"
+				placeholder={supportsRanges ? '5 or 5-8' : '5'}
 				bind:value={range}
 				onchange={show}
 				aria-invalid={!rangeOk}
 			/>
 			{#if !rangeOk}
-				<p class="mt-1 text-xs text-danger">Enter a panel number or a range like 5-8.</p>
+				<p class="mt-1 text-xs text-danger">
+					{supportsRanges ? 'Enter a panel number or a range like 5-8.' : 'Enter one panel number.'}
+				</p>
 			{/if}
 		</div>
 		{#if canChooseView}

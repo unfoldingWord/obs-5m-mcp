@@ -23,22 +23,25 @@
 		save({ tab });
 	}
 
+	/** Connect, then read the page state from the link before showing any tab. */
 	async function start() {
 		status = 'connecting';
 		try {
 			tools = await connect(endpoint());
+			const names = tools.map((t: ToolInfo) => t.name);
+			const wantsTools = new URLSearchParams(location.search).get('tab') === 'tools';
+			tryState = location.hash
+				? decodeTryState(location.hash, names)
+				: wantsTools
+					? { tab: 'tools' }
+					: { tab: 'guided' };
 			status = 'connected';
 		} catch {
 			status = 'failed';
 		}
 	}
 
-	onMount(async () => {
-		await start();
-		const fromHash = decodeTryState(location.hash, tools.map((t: ToolInfo) => t.name));
-		const wantsTools = new URLSearchParams(location.search).get('tab') === 'tools';
-		tryState = location.hash ? fromHash : wantsTools ? { tab: 'tools' } : { tab: 'guided' };
-	});
+	onMount(start);
 </script>
 
 <svelte:head>
@@ -99,9 +102,8 @@
 			<p class="mb-5 max-w-2xl text-sm text-ink-2">
 				Call any tool with your own arguments. The form comes from the tool’s schema.
 			</p>
-			{#key tryState.tool}
-				<ToolRunner {tools} initial={tryState} onstate={save} />
-			{/key}
+			<!-- Not keyed: the runner reports its state through onstate and keeps its own. -->
+			<ToolRunner {tools} initial={tryState} onstate={save} />
 		{/if}
 	</div>
 </div>

@@ -19,6 +19,27 @@ test("the try page calls this site's own server", async ({ page }) => {
   expect(calls.every((u) => u.startsWith("http://127.0.0.1:8790/"))).toBe(true);
 });
 
+test("one click on an example makes one tool call", async ({ page }) => {
+  const toolCalls: string[] = [];
+  page.on("request", (r) => {
+    if (r.url().endsWith("/mcp") && (r.postData() ?? "").includes('"tools/call"')) toolCalls.push(r.postData()!);
+  });
+  await page.goto("/try");
+  await expect(page.getByText(/Connected/)).toBeVisible({ timeout: 20_000 });
+  await page.getByRole("tab", { name: "Tools" }).click();
+  toolCalls.length = 0;
+  await page.getByRole("button", { name: "Languages", exact: true }).click();
+  await expect(page.getByText("list_languages ·")).toBeVisible({ timeout: 15_000 });
+  await page.waitForTimeout(1500);
+  expect(toolCalls.filter((b) => b.includes("list_languages"))).toHaveLength(1);
+});
+
+test("the limits page only names fields the server sends", async ({ page }) => {
+  await page.goto("/docs/limits");
+  await expect(page.getByRole("heading", { name: "Limits and sizes" })).toBeVisible();
+  await expect(page.getByText("response_size_bytes")).toHaveCount(0);
+});
+
 test("a broken shared link opens the guided session", async ({ page }) => {
   const errors: string[] = [];
   page.on("pageerror", (e) => errors.push(e.message));

@@ -8,7 +8,7 @@
 	const current = (href: string) => page.url.pathname === href || page.url.pathname.startsWith(href + '/');
 </script>
 
-<header class="sticky top-0 z-20 border-b border-line bg-bg/90 backdrop-blur">
+<header class="sticky top-0 z-20 border-b border-line bg-bg">
 	<div class="mx-auto flex h-14 max-w-6xl items-center gap-4 px-4">
 		<a href="/" class="flex items-center gap-2 font-medium text-ink">
 			<img src="/favicon.svg" alt="" class="h-5 w-5" />

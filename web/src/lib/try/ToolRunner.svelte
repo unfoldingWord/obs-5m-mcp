@@ -1,5 +1,5 @@
 <script lang="ts">
-	import { untrack } from 'svelte';
+	import { onDestroy, untrack } from 'svelte';
 	import ResultViewer from '$lib/components/ResultViewer.svelte';
 	import ToolForm from '$lib/components/ToolForm.svelte';
 	import CodeTabs from '$lib/components/CodeTabs.svelte';
@@ -32,6 +32,10 @@
 		PRESETS.filter((p) => tools.some((t) => t.name === p.tool) && (!p.needs || hasParam(tools, p.tool, p.needs)))
 	);
 
+	// A call can finish after the tab changes; a closed runner must not report state.
+	let alive = true;
+	onDestroy(() => (alive = false));
+
 	function choose(name: string) {
 		selected = name;
 		values = {};
@@ -43,7 +47,9 @@
 		const args = argsFromValues(fields, values);
 		lastArgs = args;
 		pending = true;
-		answer = await run(endpoint(), selected, args);
+		const next = await run(endpoint(), selected, args);
+		if (!alive) return;
+		answer = next;
 		pending = false;
 		onstate({ tab: 'tools', tool: selected, args });
 	}

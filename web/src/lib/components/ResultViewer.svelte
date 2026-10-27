@@ -3,6 +3,7 @@
 	import Callout from './Callout.svelte';
 	import type { CallResult } from '$lib/mcp/client';
 	import type { Outcome } from '$lib/mcp/outcome';
+	import { renderedView } from '$lib/try/rendered';
 
 	let {
 		tool = '',
@@ -26,12 +27,7 @@
 	];
 	let tab = $state<Tab>('rendered');
 	const kb = (n: number) => `${(n / 1024).toFixed(1)} KB`;
-	const rendered = $derived(
-		typeof result?.structured?.content === 'string'
-			? (result.structured.content as string)
-			: (result?.text ?? '')
-	);
-	const looksLikeJson = $derived(/^\s*[[{]/.test(rendered));
+	const view = $derived(result ? renderedView(result) : null);
 </script>
 
 <section class="min-w-0 rounded-lg border border-line bg-surface" aria-live="polite">
@@ -77,11 +73,14 @@
 			{/if}
 		{:else if !result}
 			<p class="text-sm text-ink-2">Run a call to see what the server returns.</p>
-		{:else if tab === 'rendered'}
-			{#if looksLikeJson}
-				<pre class="overflow-x-auto font-mono text-xs text-ink">{rendered}</pre>
+		{:else if tab === 'rendered' && view}
+			{#if view.kind === 'markdown'}
+				<Markdown source={view.text} />
+			{:else if view.kind === 'json'}
+				{#if view.summary}<p class="mb-3 text-sm text-ink">{view.summary}</p>{/if}
+				<pre class="overflow-x-auto font-mono text-xs text-ink">{view.json}</pre>
 			{:else}
-				<Markdown source={rendered} />
+				<pre class="font-mono text-xs whitespace-pre-wrap text-ink">{view.text}</pre>
 			{/if}
 		{:else if tab === 'json'}
 			<pre class="overflow-x-auto font-mono text-xs text-ink">{JSON.stringify(
