@@ -41,6 +41,60 @@ describe("tool handlers (mocked DCS)", () => {
     expect((sc.movements as unknown[]).length).toBe(5);
   });
 
+  it("fetch_obs_study_manual json text is the markdown, not a JSON copy (#17)", async () => {
+    const result = await fetchObsStudyManualTool.handler(
+      { reference: "1", language: "en", part: "movement1", format: "json" },
+      emptyEnv(),
+      "test-17-size",
+    );
+    expect(result.content).toHaveLength(1);
+    const text = result.content[0].text;
+    expect(text).toMatch(/^# The Creation \(OBS 1\)/);
+    expect(text).toMatch(/#### 01-01/);
+    const total =
+      JSON.stringify(result.content).length +
+      JSON.stringify(result.structuredContent).length;
+    expect(total).toBeLessThan(32_768);
+  });
+
+  it("fetch_obs_study_manual questions-only range is small and has no answers (#17)", async () => {
+    const result = await fetchObsStudyManualTool.handler(
+      {
+        reference: "1:5-8",
+        language: "en",
+        part: "movement1",
+        include_answers: false,
+        format: "json",
+      },
+      emptyEnv(),
+      "test-17-questions",
+    );
+    const text = result.content[0].text;
+    expect(text.match(/^#### /gm)).toHaveLength(4);
+    expect(text).not.toMatch(/\*\*A:\*\*/);
+    expect(text).not.toMatch(/Translation Questions/);
+    expect(
+      JSON.stringify(result.content).length +
+        JSON.stringify(result.structuredContent).length,
+    ).toBeLessThan(8_000);
+  });
+
+  it("fetch_obs_study_manual rejects section outside Movement 1", async () => {
+    await expect(
+      fetchObsStudyManualTool.handler(
+        {
+          reference: "1",
+          language: "en",
+          part: "movement2",
+          section: "observation",
+          format: "json",
+        },
+        emptyEnv(),
+        "test-17-section",
+      ),
+    ).rejects.toThrow(/Movement 1 list/);
+  });
+
   it("fetch_obs_study_manual md format is non-empty", async () => {
     const result = await fetchObsStudyManualTool.handler(
       { reference: "1", language: "en", format: "md" },
@@ -61,12 +115,12 @@ describe("tool handlers (mocked DCS)", () => {
       "test-3",
     );
     const sc = result.structuredContent as {
-      movements: Array<{ id: number; markdown: string }>;
+      movements: Array<{ id: number; markdown?: string }>;
       communityStudy: string | null;
     };
     expect(sc.movements).toHaveLength(1);
     expect(sc.movements[0].id).toBe(4);
-    expect(sc.movements[0].markdown.length).toBeGreaterThan(20);
+    expect(sc.movements[0].markdown?.length).toBeGreaterThan(20);
     expect(sc.communityStudy).toBeNull();
   });
 

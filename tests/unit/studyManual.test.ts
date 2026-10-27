@@ -10,6 +10,7 @@ import { parseObsTfReference } from "../../src/content/obsTfReference.js";
 import {
   buildStudyManualPayload,
   formatStudyManualMd,
+  narrowMarkdownToRef,
   formatStudyManualText,
   renderStudyManual,
 } from "../../src/content/studyManual.js";
@@ -50,12 +51,14 @@ describe("studyManual (#36)", () => {
     expect(payload.reference).toBe("1");
     expect(payload.communityStudy).toBeTruthy();
     expect(payload.movements).toHaveLength(5);
-    expect(payload.sections.movement1_biblicalInterpretation).toBeTruthy();
-    expect(payload.sections.movement4_ministryPractice?.markdown.length).toBeGreaterThan(
-      20,
-    );
-    expect(payload.drafting).toMatch(/Translation Draft|draft/i);
-    expect(payload.checking).toMatch(/Team Check|Accurate/i);
+    expect(payload.sections.movement1_biblicalInterpretation).toBe("movements[0]");
+    expect(payload.sections.movement4_ministryPractice).toBe("movements[3]");
+    expect(payload.movements[3].markdown?.length).toBeGreaterThan(20);
+    // Whole story: drafting and checking sit in movements 2 and 3 only.
+    expect(payload.movements[1].drafting).toMatch(/Translation Draft|draft/i);
+    expect(payload.movements[2].checking).toMatch(/Team Check|Accurate/i);
+    expect(payload.drafting).toBeNull();
+    expect(payload.checking).toBeNull();
     expect(payload.conclusion).toMatch(/Conclusion|community/i);
     expect(payload.sessionFlow).toContain("drafting");
     expect(payload.sections.drafting).toBeTruthy();
@@ -123,5 +126,119 @@ describe("studyManual (#36)", () => {
     expect(md).toMatch(/Translation Draft/i);
     expect(md).toMatch(/Team Check/i);
     expect(md).toMatch(/## Conclusion/);
+  });
+
+  it("narrows a frame range in lists, frames and markdown (#17)", () => {
+    const ref = parseObsTfReference("1:5-8")!;
+    const payload = buildStudyManualPayload(loadBundle(), {
+      ref,
+      part: "movement1",
+    });
+    expect(payload.reference).toBe("1:5-8");
+    const m1 = payload.movements[0];
+    const ids = ["01-05", "01-06", "01-07", "01-08"];
+    expect(m1.observation?.map((b) => b.frameId)).toEqual(ids);
+    expect(m1.translation?.map((b) => b.frameId)).toEqual(ids);
+    // Parsed lists cover Movement 1, so its raw markdown is not repeated.
+    expect(m1.markdown).toBeUndefined();
+    const md = formatStudyManualMd(payload);
+    expect(md).toMatch(/#### 01-05/);
+    expect(md).not.toMatch(/01-04|01-09|01-16/);
+  });
+
+  it("a single frame no longer carries every panel (#17)", () => {
+    const payload = buildStudyManualPayload(loadBundle(), {
+      ref: parseObsTfReference("1:5")!,
+      part: "movement1",
+    });
+    expect(JSON.stringify(payload)).not.toMatch(/01-16/);
+  });
+
+  it("narrowMarkdownToRef drops out-of-range panel and discourse blocks", () => {
+    const md = [
+      "## Movement",
+      "Intro line",
+      "### Observation Questions",
+      "#### 01-01",
+      "Q1",
+      "#### 01-05",
+      "Q5",
+      "### Discourse Questions",
+      "##### First? (01-01, 01-02)",
+      "A1",
+      "##### Middle? (01-04, 01-05)",
+      "A2",
+      "### Theological Questions",
+      "1. T",
+    ].join("\n");
+    const out = narrowMarkdownToRef(md, parseObsTfReference("1:5")!);
+    expect(out).toContain("Intro line");
+    expect(out).toContain("Q5");
+    expect(out).toContain("Middle?");
+    expect(out).toContain("### Theological Questions");
+    expect(out).not.toContain("Q1");
+    expect(out).not.toContain("First?");
+  });
+
+  it("questions-only view drops answers and everything around them (#17)", () => {
+    const payload = buildStudyManualPayload(loadBundle(), {
+      ref: parseObsTfReference("1:5-8")!,
+      part: "movement1",
+      includeAnswers: false,
+    });
+    const m1 = payload.movements[0];
+    expect(m1.observation).toHaveLength(4);
+    for (const block of m1.observation ?? []) {
+      for (const item of block.items) {
+        expect(item.question.length).toBeGreaterThan(0);
+        expect(item).not.toHaveProperty("answer");
+      }
+    }
+    expect(m1.translation).toBeUndefined();
+    expect(payload.frames).toEqual([]);
+    expect(payload.intro).toBeUndefined();
+    expect(payload.communityStudy).toBeNull();
+    expect(payload.conclusion).toBeNull();
+    const md = formatStudyManualMd(payload);
+    expect(md).toMatch(/Observation Questions/);
+    expect(md).not.toMatch(/\*\*A:\*\*/);
+    expect(md).not.toMatch(/Translation Questions/);
+    expect(JSON.stringify(payload).length).toBeLessThan(8_000);
+  });
+
+  it("section picks one Movement 1 list and implies movement1", () => {
+    const translation = buildStudyManualPayload(loadBundle(), {
+      ref: parseObsTfReference("1:5")!,
+      section: "translation",
+    });
+    expect(translation.part).toBe("movement1");
+    expect(translation.movements).toHaveLength(1);
+    expect(translation.movements[0].translation?.[0].frameId).toBe("01-05");
+    expect(translation.movements[0].observation).toBeUndefined();
+
+    const observation = buildStudyManualPayload(loadBundle(), {
+      ref: parseObsTfReference("1")!,
+      section: "observation",
+    });
+    expect(observation.movements[0].observation).toHaveLength(16);
+    expect(observation.movements[0].translation).toBeUndefined();
+    // section keeps answers unless includeAnswers is false
+    expect(observation.movements[0].observation?.[0].items[0].answer).toBeTruthy();
+  });
+
+  it("does not repeat drafting and checking (#17)", () => {
+    const ref = parseObsTfReference("1")!;
+    const full = buildStudyManualPayload(loadBundle(), { ref });
+    expect(full.movements.find((m) => m.id === 2)?.drafting).toBeTruthy();
+    expect(full.drafting).toBeNull();
+    expect(full.sections.drafting).toBe("movements[1]");
+    expect(formatStudyManualMd(full)).toMatch(/Translation Draft/);
+
+    const drafting = buildStudyManualPayload(loadBundle(), {
+      ref,
+      part: "drafting",
+    });
+    expect(drafting.movements).toHaveLength(0);
+    expect(drafting.sections.drafting).toBe("drafting");
   });
 });

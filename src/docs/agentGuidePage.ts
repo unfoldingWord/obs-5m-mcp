@@ -219,15 +219,18 @@ export function renderAgentGuidePage(baseUrl: string): string {
           <tr><th>Param</th><th>Description</th></tr>
         </thead>
         <tbody>
-          <tr><td><code>reference</code></td><td>OBS <code>story:frame</code> — <code>"1:1"</code>, <code>"1"</code> (whole story), <code>"1:0"</code> (intro). Optional <code>obs </code> prefix.</td></tr>
+          <tr><td><code>reference</code></td><td>OBS <code>story:frame</code> — <code>"1:1"</code>, <code>"1:5-8"</code> (panels 5 to 8), <code>"1"</code> (whole story), <code>"1:0"</code> (intro). A frame or range narrows the per-panel questions. Optional <code>obs </code> prefix.</td></tr>
           <tr><td><code>language</code></td><td>Default <code>en</code>. Use <code>id</code> for Indonesian.</td></tr>
           <tr><td><code>part</code></td><td><code>intro</code> \| <code>frames</code> \| <code>community</code> \| <code>movement1</code>–<code>5</code> \| <code>drafting</code> \| <code>checking</code> \| <code>conclusion</code> \| <code>full</code></td></tr>
           <tr><td><code>movement</code></td><td>Optional <code>1</code>–<code>5</code> (same as <code>part=movementN</code>). Prefer <code>part</code> for drafting/checking/conclusion.</td></tr>
+          <tr><td><code>include_answers</code></td><td>Default <code>true</code>. <code>false</code> returns questions only, without answers, grouped by panel.</td></tr>
+          <tr><td><code>section</code></td><td><code>observation</code> \| <code>translation</code> — one Movement 1 list (implies <code>part=movement1</code>).</td></tr>
           <tr><td><code>format</code></td><td><code>json</code> (default), <code>md</code>, or <code>text</code> — md/text render from the same parsed data.</td></tr>
         </tbody>
       </table>
       <p>
-        Response includes <code>sections</code>, <code>sessionFlow</code>, and (when present)
+        With <code>format=json</code> the text content is the slice as markdown and the data is in <code>structuredContent</code>.
+        Response includes <code>sections</code> (where each section sits in the payload), <code>sessionFlow</code>, and (when present)
         <code>drafting</code>, <code>checking</code>, <code>conclusion</code>.
       </p>
 

@@ -14,11 +14,13 @@ ${OBS_FORMATION_CONTEXT}
 
 ## Primary tool
 - **fetch_obs_study_manual** — preferred.
-  - \`reference\`: story:frame ("1:1", "1" whole story, "1:0" intro)
+  - \`reference\`: story:frame ("1:1", "1:5-8" panels 5 to 8, "1" whole story, "1:0" intro); a frame or range narrows the per-panel questions
   - \`part\` (recommended for pacing): intro | frames | community | movement1–5 | drafting | checking | conclusion
   - \`movement\` 1–5 still works; \`part\` is more precise for drafting/checking/conclusion
-  - \`format\`: json (default) | md | text
-  - Response includes \`sections\`, \`sessionFlow\`, \`drafting\`, \`checking\`, \`conclusion\`
+  - \`include_answers\`: false gives questions only, grouped by panel, ready to hand to a team
+  - \`section\`: observation | translation — one Movement 1 list
+  - \`format\`: json (default) | md | text. With json, the text content is the slice as markdown (relay it as written); the data is in structuredContent
+  - Response includes \`sections\` (where each section sits in the payload), \`sessionFlow\`, \`drafting\`, \`checking\`, \`conclusion\`
 
 ## Translator session workflow
 1. list_languages / list_resources — what exists for the language

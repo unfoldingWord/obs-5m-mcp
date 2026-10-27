@@ -5,7 +5,8 @@
 import type { StoryBundle } from "./contentService.js";
 import {
   frameIdFor,
-  matchesFrameId,
+  frameIndexOf,
+  frameInRef,
   type ObsTfReference,
 } from "./obsTfReference.js";
 import type { ObsTfMovement } from "./obsTfParser.js";
@@ -56,31 +57,160 @@ export interface StudyManualOptions {
    * Ignored when movement/part selects a single movement activity.
    */
   includeCommunityStudy?: boolean;
+  /**
+   * When false, return questions without the manual's answers (what a
+   * facilitator hands to a team). Default true.
+   */
+  includeAnswers?: boolean;
+  /** Return only one Movement 1 list: Observation or Translation Questions. */
+  section?: StudyManualSection;
 }
 
-function filterMovementForFrame(
+export const STUDY_MANUAL_SECTIONS = ["observation", "translation"] as const;
+export type StudyManualSection = (typeof STUDY_MANUAL_SECTIONS)[number];
+
+/** A movement as returned to clients: answers and markdown are optional. */
+export interface StudyManualMovement
+  extends Omit<ObsTfMovement, "markdown" | "observation" | "discourse"> {
+  /** Raw manual text; only kept when the parsed lists do not cover the movement. */
+  markdown?: string;
+  observation?: Array<{
+    frameId: string;
+    items: Array<{ question: string; answer?: string }>;
+  }>;
+  discourse?: Array<{ question: string; answer?: string; frameRefs: string[] }>;
+}
+
+function frameIdInRef(frameId: string, ref: ObsTfReference): boolean {
+  const index = frameIndexOf(frameId, ref.story);
+  return index !== null && frameInRef(ref, index);
+}
+
+const FRAME_HEADING = /^(\d+)-(\d+)$/;
+const DISCOURSE_REFS = /\(([\d\s,-]+)\)\s*$/;
+
+/**
+ * Drop the per-panel blocks of a movement's markdown that fall outside the
+ * frame range (`#### 01-05` blocks and `##### Question? (01-01, 01-02)` blocks).
+ * A block runs until the next heading of the same or a higher level.
+ */
+export function narrowMarkdownToRef(md: string, ref: ObsTfReference): string {
+  if (ref.frame === null || ref.frame === 0) return md;
+  const out: string[] = [];
+  let skipLevel: number | null = null;
+  for (const line of md.split("\n")) {
+    const heading = /^(#{1,6})\s+(.*?)\s*$/.exec(line);
+    if (heading) {
+      const level = heading[1].length;
+      if (skipLevel !== null && level <= skipLevel) skipLevel = null;
+      if (skipLevel === null) {
+        const text = heading[2];
+        let drop = false;
+        if (FRAME_HEADING.test(text)) {
+          drop = !frameIdInRef(text, ref);
+        } else {
+          const refs = DISCOURSE_REFS.exec(text);
+          if (refs) {
+            const ids = refs[1].split(",").map((s) => s.trim());
+            drop = ids.every((id) => !frameIdInRef(id, ref));
+          }
+        }
+        if (drop) {
+          skipLevel = level;
+          continue;
+        }
+      }
+    }
+    if (skipLevel === null) out.push(line);
+  }
+  return out.join("\n");
+}
+
+function filterMovementForRef(
   m: ObsTfMovement,
-  story: number,
-  frame: number | null,
+  ref: ObsTfReference,
 ): ObsTfMovement {
-  if (frame === null || frame === 0) return m;
+  if (ref.frame === null || ref.frame === 0) return m;
   return {
     ...m,
-    observation: m.observation?.filter((b) =>
-      matchesFrameId(b.frameId, story, frame),
-    ),
-    translation: m.translation?.filter((b) =>
-      matchesFrameId(b.frameId, story, frame),
-    ),
+    markdown: narrowMarkdownToRef(m.markdown, ref),
+    observation: m.observation?.filter((b) => frameIdInRef(b.frameId, ref)),
+    translation: m.translation?.filter((b) => frameIdInRef(b.frameId, ref)),
     discourse: m.discourse?.filter((d) =>
-      d.frameRefs.some((fr) => {
-        const parts = fr.split("-");
-        if (parts.length !== 2) return false;
-        const f = Number.parseInt(parts[1], 10);
-        return f === frame;
-      }),
+      d.frameRefs.some((fr) => frameIdInRef(fr, ref)),
     ),
   };
+}
+
+function hasParsedLists(m: {
+  observation?: unknown[];
+  translation?: unknown[];
+  discourse?: unknown[];
+  theological?: unknown[];
+  journal?: unknown[];
+  drafting?: string | null;
+  checking?: string | null;
+}): boolean {
+  return (
+    Boolean(m.observation?.length) ||
+    Boolean(m.translation?.length) ||
+    Boolean(m.discourse?.length) ||
+    Boolean(m.theological?.length) ||
+    Boolean(m.journal?.length) ||
+    Boolean(m.drafting?.trim()) ||
+    Boolean(m.checking?.trim())
+  );
+}
+
+/**
+ * Whether the raw markdown adds anything the parsed lists do not carry.
+ * Movements 4–5 are mostly prose, so their markdown is the content.
+ */
+function needsMarkdown(m: ObsTfMovement): boolean {
+  if (!m.markdown?.trim()) return false;
+  if (!hasParsedLists(m)) return true;
+  return (m.id === 4 || m.id === 5) && !m.drafting && !m.checking;
+}
+
+function toClientMovement(
+  m: ObsTfMovement,
+  opts: { includeAnswers: boolean; section?: StudyManualSection },
+): StudyManualMovement {
+  const { markdown, observation, discourse, ...rest } = m;
+  const out: StudyManualMovement = { ...rest };
+  if (observation) {
+    out.observation = opts.includeAnswers
+      ? observation
+      : observation.map((b) => ({
+          frameId: b.frameId,
+          items: b.items.map((i) => ({ question: i.question })),
+        }));
+  }
+  if (discourse) {
+    out.discourse = opts.includeAnswers
+      ? discourse
+      : discourse.map((d) => ({ question: d.question, frameRefs: d.frameRefs }));
+  }
+  if (opts.section) {
+    // One Movement 1 list only.
+    return {
+      id: m.id,
+      title: m.title,
+      ...(opts.section === "observation"
+        ? { observation: out.observation ?? [] }
+        : { translation: m.translation ?? [] }),
+    };
+  }
+  if (!opts.includeAnswers) {
+    // Questions-only view: Translation Questions are guidance, not questions,
+    // so they come only with section: "translation".
+    delete out.translation;
+    // Prose movements (4–5) have no separate answers; keep their text.
+    if (!hasParsedLists(m) && markdown?.trim()) out.markdown = markdown;
+    return out;
+  }
+  if (needsMarkdown(m)) out.markdown = markdown;
+  return out;
 }
 
 function movementPartId(id: number): StudyManualPart {
@@ -108,7 +238,14 @@ export function buildStudyManualPayload(
   opts: StudyManualOptions,
 ) {
   const { ref } = opts;
-  const part = resolvePart(opts);
+  const includeAnswers = opts.includeAnswers !== false;
+  // A section is a Movement 1 list, so it implies movement1.
+  const part =
+    opts.section && (opts.part ?? "full") === "full" && opts.movement === undefined
+      ? "movement1"
+      : resolvePart(opts);
+  // Questions only: no story text, devotion or wrap-up around the questions.
+  const questionsOnly = !includeAnswers || opts.section !== undefined;
   const narrow =
     part !== "full" &&
     part !== "intro" &&
@@ -116,6 +253,7 @@ export function buildStudyManualPayload(
     part !== "community";
 
   const includeCommunity =
+    !questionsOnly &&
     opts.includeCommunityStudy !== false &&
     (part === "full" || part === "community");
 
@@ -133,14 +271,15 @@ export function buildStudyManualPayload(
     movements = [];
   }
 
-  movements = movements.map((m) =>
-    filterMovementForFrame(m, ref.story, ref.frame),
-  );
+  if (opts.section) movements = movements.filter((m) => m.id === 1);
+
+  movements = movements.map((m) => filterMovementForRef(m, ref));
 
   let frames = bundle.story.frames;
   if (ref.frame !== null && ref.frame > 0) {
-    frames = frames.filter((f) => f.index === ref.frame);
+    frames = frames.filter((f) => frameInRef(ref, f.index));
   }
+  if (questionsOnly) frames = [];
   if (part !== "full" && part !== "frames" && part !== "intro") {
     // Keep frames only for full / frames / intro-adjacent whole-story views
     if (narrow || part === "community") frames = [];
@@ -151,7 +290,7 @@ export function buildStudyManualPayload(
   }
 
   const intro =
-    part === "full" || part === "intro"
+    !questionsOnly && (part === "full" || part === "intro")
       ? ref.frame === null || ref.frame === 0 || part === "intro"
         ? bundle.story.intro
         : undefined
@@ -161,44 +300,39 @@ export function buildStudyManualPayload(
   const drafting = draftingOf(bundle.story.movements);
   const checking = checkingOf(bundle.story.movements);
 
+  // Drafting/checking-only parts: the top-level drafting/checking field
+  // carries the text, so no movement is repeated around it.
+  if (part === "drafting" || part === "checking") movements = [];
+
+  const clientMovements = movements.map((m) =>
+    toClientMovement(m, { includeAnswers, section: opts.section }),
+  );
+
+  // Drafting and checking live inside movements 2 and 3 when those are
+  // returned; the top-level fields carry them only otherwise.
+  const inMovement = (id: number, key: "drafting" | "checking") =>
+    clientMovements.some((m) => m.id === id && Boolean(m[key]?.trim()));
   const showConclusion =
-    part === "full" || part === "conclusion" ? bundle.story.conclusion : null;
+    !questionsOnly && (part === "full" || part === "conclusion")
+      ? bundle.story.conclusion
+      : null;
   const showDrafting =
-    part === "full" || part === "drafting" || part === "movement2"
+    (part === "full" || part === "drafting" || part === "movement2") &&
+    !inMovement(2, "drafting")
       ? drafting
       : null;
   const showChecking =
-    part === "full" || part === "checking" || part === "movement3"
+    (part === "full" || part === "checking" || part === "movement3") &&
+    !inMovement(3, "checking")
       ? checking
       : null;
 
-  // For drafting/checking-only parts, still expose the parent movement shell
-  if (part === "drafting" || part === "checking") {
-    movements = movements.map((m) => {
-      if (part === "drafting" && m.id === 2) {
-        return {
-          ...m,
-          discourse: undefined,
-          theological: undefined,
-          markdown: m.drafting ?? "",
-        };
-      }
-      if (part === "checking" && m.id === 3) {
-        return {
-          ...m,
-          journal: undefined,
-          markdown: m.checking ?? "",
-        };
-      }
-      return m;
-    });
-  }
-
-  const m1 = movements.find((m) => m.id === 1) ?? null;
-  const m2 = movements.find((m) => m.id === 2) ?? null;
-  const m3 = movements.find((m) => m.id === 3) ?? null;
-  const m4 = movements.find((m) => m.id === 4) ?? null;
-  const m5 = movements.find((m) => m.id === 5) ?? null;
+  const at = (id: number): string | null => {
+    const i = clientMovements.findIndex((m) => m.id === id);
+    return i === -1 ? null : `movements[${i}]`;
+  };
+  const showFrames = part === "full" || part === "frames";
+  const outFrames = part === "intro" || part === "community" ? [] : frames;
 
   return {
     resourceType: "obs-tf" as const,
@@ -208,12 +342,15 @@ export function buildStudyManualPayload(
     language: bundle.language,
     story: ref.story,
     frame: ref.frame,
+    frameEnd: ref.frameEnd,
     part,
+    includeAnswers,
+    section: opts.section ?? null,
     storyTitle: bundle.story.meta.subtitle,
     intro: part === "frames" || part === "community" ? undefined : intro,
-    frames: part === "intro" || part === "community" ? [] : frames,
+    frames: outFrames,
     bibleSource:
-      part === "full" || part === "frames" ? bundle.story.bibleSource : null,
+      !questionsOnly && showFrames ? bundle.story.bibleSource : null,
     communityStudy,
     communityStudyRef: includeCommunity
       ? bundle.story.communityStudyRef
@@ -221,20 +358,24 @@ export function buildStudyManualPayload(
     drafting: showDrafting,
     checking: showChecking,
     conclusion: showConclusion,
-    movements,
-    /** Explicit section map for BT Servant / agent routing */
+    movements: clientMovements,
+    /**
+     * Section map for BT Servant / agent routing: where each section sits in
+     * this payload (a field name or "movements[i]"), or null when absent.
+     * Content is not repeated here.
+     */
     sections: {
-      intro: intro ?? null,
-      frames: part === "full" || part === "frames" ? frames : null,
-      communityStudy,
-      movement1_biblicalInterpretation: m1,
-      movement2_theologicalDialogue: m2,
-      movement3_personalReflection: m3,
-      movement4_ministryPractice: m4,
-      movement5_missionalOutreach: m5,
-      drafting: showDrafting,
-      checking: showChecking,
-      conclusion: showConclusion,
+      intro: intro ? "intro" : null,
+      frames: showFrames && outFrames.length ? "frames" : null,
+      communityStudy: communityStudy ? "communityStudy" : null,
+      movement1_biblicalInterpretation: at(1),
+      movement2_theologicalDialogue: at(2),
+      movement3_personalReflection: at(3),
+      movement4_ministryPractice: at(4),
+      movement5_missionalOutreach: at(5),
+      drafting: showDrafting ? "drafting" : inMovement(2, "drafting") ? at(2) : null,
+      checking: showChecking ? "checking" : inMovement(3, "checking") ? at(3) : null,
+      conclusion: showConclusion ? "conclusion" : null,
     },
     /** Suggested facilitator order for a full translation session */
     sessionFlow: [
@@ -287,11 +428,11 @@ export function buildStudyManualPayload(
 
 export type StudyManualPayload = ReturnType<typeof buildStudyManualPayload>;
 
-function movementHeading(m: ObsTfMovement): string {
+function movementHeading(m: StudyManualMovement): string {
   return `## Movement ${m.id}: ${m.title}`;
 }
 
-function appendMovementStructured(lines: string[], m: ObsTfMovement): void {
+function appendMovementStructured(lines: string[], m: StudyManualMovement): void {
   if (m.observation?.length) {
     lines.push("### Observation Questions");
     lines.push("");
@@ -350,14 +491,7 @@ function appendMovementStructured(lines: string[], m: ObsTfMovement): void {
     lines.push(m.checking.trim());
     lines.push("");
   }
-  const hasStructured =
-    Boolean(m.observation?.length) ||
-    Boolean(m.translation?.length) ||
-    Boolean(m.discourse?.length) ||
-    Boolean(m.theological?.length) ||
-    Boolean(m.journal?.length) ||
-    Boolean(m.drafting?.trim()) ||
-    Boolean(m.checking?.trim());
+  const hasStructured = hasParsedLists(m);
   // Movements 4–5 (and sparse parts) rely on markdown body
   if (!hasStructured && m.markdown) {
     lines.push(m.markdown);

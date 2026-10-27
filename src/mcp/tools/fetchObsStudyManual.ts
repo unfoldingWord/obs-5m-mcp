@@ -11,8 +11,10 @@ import { loadStoryBundle } from "../../content/contentService.js";
 import { parseObsTfReference } from "../../content/obsTfReference.js";
 import {
   buildStudyManualPayload,
+  formatStudyManualMd,
   renderStudyManual,
   STUDY_MANUAL_PARTS,
+  STUDY_MANUAL_SECTIONS,
 } from "../../content/studyManual.js";
 import { ErrorCode, isObs5mError, Obs5mError } from "../../core/errors.js";
 import {
@@ -26,7 +28,8 @@ import {
 
 const REFERENCE_DESCRIPTION =
   "OBS story:frame reference into the study manual. " +
-  'Examples: "1:1" (story 1, frame 1), "1" (whole story), "1:0" (intro). ' +
+  'Examples: "1:1" (story 1, frame 1), "1:5-8" (frames 5 to 8), "1" (whole story), "1:0" (intro). ' +
+  "A frame or range narrows the frames and the per-frame questions to those panels. " +
   'Optional "obs " prefix accepted. Use movement or part to fetch one session slice.';
 
 const PART_DESCRIPTION =
@@ -53,6 +56,21 @@ const inputSchema = z.object({
     .enum(STUDY_MANUAL_PARTS)
     .optional()
     .describe(PART_DESCRIPTION),
+  include_answers: z
+    .boolean()
+    .optional()
+    .describe(
+      "Default true. Set false for questions only, without the manual's answers, grouped by panel and " +
+        "ready to hand to a team. Leaves out the story text, devotion and wrap-up, and " +
+        'Translation Questions (ask for those with section: "translation").',
+    ),
+  section: z
+    .enum(STUDY_MANUAL_SECTIONS)
+    .optional()
+    .describe(
+      'Optional: only one Movement 1 list, "observation" (Observation Questions) or ' +
+        '"translation" (Translation Questions). Implies part movement1.',
+    ),
   format: z
     .enum(["json", "md", "text"])
     .default("json")
@@ -81,7 +99,10 @@ export const fetchObsStudyManualTool: ToolModule<typeof inputSchema> = {
     language: z.string().optional(),
     story: z.number().optional(),
     frame: z.number().nullable().optional(),
+    frameEnd: z.number().nullable().optional(),
     part: z.string().optional(),
+    includeAnswers: z.boolean().optional(),
+    section: z.string().nullable().optional(),
     format: z.string().optional(),
     content: z.unknown().optional(),
     storyTitle: z.string().optional(),
@@ -106,7 +127,19 @@ export const fetchObsStudyManualTool: ToolModule<typeof inputSchema> = {
       throw new Obs5mError({
         code: ErrorCode.INVALID_PARAMS,
         message:
-          `Invalid OBS reference: "${params.reference}". Use story:frame (e.g. "1:1", "1").`,
+          `Invalid OBS reference: "${params.reference}". ` +
+          'Use story, story:frame or story:first-last (e.g. "1", "1:1", "1:5-8").',
+      });
+    }
+    if (
+      params.section &&
+      ((params.part && params.part !== "full" && params.part !== "movement1") ||
+        (params.movement !== undefined && params.movement !== 1))
+    ) {
+      throw new Obs5mError({
+        code: ErrorCode.INVALID_PARAMS,
+        message:
+          `section "${params.section}" is a Movement 1 list; use it with part movement1 (or no part).`,
       });
     }
 
@@ -116,22 +149,23 @@ export const fetchObsStudyManualTool: ToolModule<typeof inputSchema> = {
         ref,
         movement: params.movement,
         part: params.part,
+        includeAnswers: params.include_answers,
+        section: params.section,
       });
       const rendered = renderStudyManual(payload, params.format);
 
       if (params.format === "json") {
+        // Text content is the slice as markdown, ready to relay as written;
+        // the data is in structuredContent. Sending the JSON as text too would
+        // double the response for clients that read only text.
         return ok(
           payload,
-          `OBS study manual ${ref.canonical} (${params.language})` +
-            (payload.part && payload.part !== "full"
-              ? ` part=${payload.part}`
-              : params.movement
-                ? ` movement ${params.movement}`
-                : ""),
+          formatStudyManualMd(payload),
           partnerMeta(
             bundle.downstreamApiCalls,
             bundle.cacheStatus === "hit" ? "hit" : "miss",
           ),
+          { jsonText: false },
         );
       }
 
@@ -143,7 +177,10 @@ export const fetchObsStudyManualTool: ToolModule<typeof inputSchema> = {
         language: params.language,
         story: ref.story,
         frame: ref.frame,
+        frameEnd: ref.frameEnd,
         part: payload.part,
+        includeAnswers: payload.includeAnswers,
+        section: payload.section,
         format: rendered.format,
         content: rendered.content,
         storyTitle: payload.storyTitle,
