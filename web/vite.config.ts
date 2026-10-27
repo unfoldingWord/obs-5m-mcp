@@ -28,14 +28,11 @@ export default defineConfig({
 		port: 8174,
 		host: true,
 		proxy: {
-			// Optional: wrangler on 8790 for MCP/PDF while Vite serves chat
-			'/mcp': { target: 'http://127.0.0.1:8790', changeOrigin: true, ws: true },
-			'/api/chat': { target: 'http://127.0.0.1:8790', changeOrigin: true },
-			'/api/tool': { target: 'http://127.0.0.1:8790', changeOrigin: true },
-			'/api/mcp-manifest': { target: 'http://127.0.0.1:8790', changeOrigin: true },
+			// `npm run dev` at the repo root runs the Worker on :8790.
+			'/mcp': { target: 'http://127.0.0.1:8790', changeOrigin: true },
+			'/api': { target: 'http://127.0.0.1:8790', changeOrigin: true },
 			'/health': { target: 'http://127.0.0.1:8790', changeOrigin: true },
-			'/docs': { target: 'http://127.0.0.1:8790', changeOrigin: true },
-			'/debug': { target: 'http://127.0.0.1:8790', changeOrigin: true }
+			'/llms.txt': { target: 'http://127.0.0.1:8790', changeOrigin: true }
 		},
 		fs: { allow: ['..'], strict: false }
 	}

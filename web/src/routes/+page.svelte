@@ -1,11 +1,2 @@
-<script lang="ts">
-	import { onMount } from 'svelte';
-	import { goto } from '$app/navigation';
-	import { withBase } from '$lib/paths';
-
-	onMount(() => {
-		goto(withBase('/chat'), { replaceState: true });
-	});
-</script>
-
-<p class="p-6 text-sm text-[var(--muted)]">Redirecting to chat…</p>
+<svelte:head><title>OBS-TF MCP</title></svelte:head>
+<p class="mx-auto max-w-3xl px-4 py-24 text-ink-2">The home page is built in a later task.</p>

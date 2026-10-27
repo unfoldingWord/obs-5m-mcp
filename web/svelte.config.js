@@ -28,9 +28,7 @@ const config = {
 		},
 		alias: {
 			$lib: './src/lib',
-			$chat: '../src/chat',
 			$mcp: '../src/mcp',
-			$core: '../src/core',
 			$content: '../src/content'
 		}
 	}
