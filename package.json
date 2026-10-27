@@ -7,7 +7,7 @@
   "scripts": {
     "dev": "wrangler dev --port 8790",
     "dev:web": "npm run dev --prefix web",
-    "build:web": "npm run build --prefix web",
+    "build:web": "tsx scripts/build-anatomy-snapshot.ts && npm run build --prefix web",
     "deploy": "npm run build:web && wrangler deploy",
     "deploy:with-web": "npm run build:web && wrangler deploy",
     "typecheck": "tsc --noEmit",
