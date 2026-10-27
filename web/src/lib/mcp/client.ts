@@ -59,11 +59,17 @@ export class McpHttpClient {
 	readonly log: Exchange[] = [];
 	private sessionId: string | null = null;
 	private nextId = 1;
+	/** Requests go one at a time: the server may answer on another open stream. */
+	private queue: Promise<unknown> = Promise.resolve();
+	private readonly timeoutMs: number;
 
 	constructor(
 		private readonly endpoint: string,
-		private readonly fetchImpl: typeof fetch = (...args) => fetch(...args)
-	) {}
+		private readonly fetchImpl: typeof fetch = (...args) => fetch(...args),
+		options: { timeoutMs?: number } = {}
+	) {
+		this.timeoutMs = options.timeoutMs ?? 30_000;
+	}
 
 	async initialize(): Promise<void> {
 		await this.request('initialize', {
@@ -106,7 +112,29 @@ export class McpHttpClient {
 		return { message: rpc, exchange };
 	}
 
-	private async send(payload: Record<string, unknown>) {
+	private send(payload: Record<string, unknown>) {
+		const next = this.queue.then(() => this.sendWithTimeout(payload));
+		this.queue = next.catch(() => undefined);
+		return next;
+	}
+
+	private async sendWithTimeout(payload: Record<string, unknown>) {
+		const controller = new AbortController();
+		let timer: ReturnType<typeof setTimeout> | undefined;
+		const timeout = new Promise<never>((_, reject) => {
+			timer = setTimeout(() => {
+				controller.abort();
+				reject(new Error('The server did not answer in time. Try again.'));
+			}, this.timeoutMs);
+		});
+		try {
+			return await Promise.race([this.sendNow(payload, controller.signal), timeout]);
+		} finally {
+			clearTimeout(timer);
+		}
+	}
+
+	private async sendNow(payload: Record<string, unknown>, signal: AbortSignal) {
 		const headers: Record<string, string> = {
 			'Content-Type': 'application/json',
 			Accept: 'application/json, text/event-stream'
@@ -118,7 +146,8 @@ export class McpHttpClient {
 		const res = await this.fetchImpl(this.endpoint, {
 			method: 'POST',
 			headers,
-			body: JSON.stringify(payload)
+			body: JSON.stringify(payload),
+			signal
 		});
 		const sid = res.headers.get('Mcp-Session-Id');
 		if (sid) this.sessionId = sid;

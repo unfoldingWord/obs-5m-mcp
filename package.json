@@ -23,7 +23,9 @@
     "plain-md": "tsx scripts/plain-pdf-to-md.ts",
     "export:dcs": "tsx scripts/export-dcs-repo.ts",
     "check:coverage": "tsx scripts/check-pdf-content-coverage.ts",
-    "prepare": "node -e \"process.exit(0)\""
+    "prepare": "node -e \"process.exit(0)\"",
+    "check:web": "npm run check --prefix web",
+    "test:e2e": "playwright test"
   },
   "dependencies": {
     "@modelcontextprotocol/sdk": "1.15.1",

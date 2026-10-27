@@ -96,6 +96,35 @@ describe("McpHttpClient with a stream that stays open", () => {
   });
 });
 
+describe("McpHttpClient request order and time limit", () => {
+  it("never has two requests in flight on one session", async () => {
+    let inFlight = 0;
+    let maxInFlight = 0;
+    const fetchImpl = (async (_url: unknown, init?: RequestInit) => {
+      const body = JSON.parse(String(init?.body)) as { id?: number };
+      inFlight++;
+      maxInFlight = Math.max(maxInFlight, inFlight);
+      await new Promise((r) => setTimeout(r, 10));
+      inFlight--;
+      return new Response(rpc(body.id, { content: [{ type: "text", text: "ok" }] }), {
+        headers: { "Content-Type": "application/json" },
+      });
+    }) as typeof fetch;
+    const client = new McpHttpClient("https://x/mcp", fetchImpl);
+    await Promise.all([client.callTool("a", {}), client.callTool("b", {}), client.callTool("c", {})]);
+    expect(maxInFlight).toBe(1);
+  });
+
+  it("gives up on a request that gets no answer", async () => {
+    const fetchImpl = (async () => {
+      const stream = new ReadableStream<Uint8Array>({ start() {} });
+      return new Response(stream, { headers: { "Content-Type": "text/event-stream" } });
+    }) as typeof fetch;
+    const client = new McpHttpClient("https://x/mcp", fetchImpl, { timeoutMs: 50 });
+    await expect(client.callTool("a", {})).rejects.toThrow(/did not answer/);
+  });
+});
+
 describe("classifyOutcome", () => {
   const exchange = { request: {}, response: {}, status: 200, bytes: 1, ms: 1 };
   it("sorts results into the five kinds", () => {

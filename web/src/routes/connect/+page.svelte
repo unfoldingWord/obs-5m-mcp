@@ -50,8 +50,8 @@
 	</p>
 	<div class="mt-6"><CopyPill value={endpoint()} label="Copy the server URL" /></div>
 
-	<div class="mt-10 grid gap-8 md:grid-cols-[minmax(0,13rem)_minmax(0,1fr)]">
-		<nav aria-label="Clients">
+	<div class="mt-10 grid grid-cols-[minmax(0,1fr)] gap-8 md:grid-cols-[minmax(0,13rem)_minmax(0,1fr)]">
+		<nav aria-label="Clients" class="min-w-0">
 			<ul class="flex gap-1 overflow-x-auto md:flex-col">
 				{#each clients as c (c.id)}
 					<li class="shrink-0">
