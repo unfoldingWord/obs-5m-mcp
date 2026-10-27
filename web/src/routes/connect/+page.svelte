@@ -43,7 +43,7 @@
 </svelte:head>
 
 <div class="mx-auto max-w-5xl px-4 py-14">
-	<h1 class="text-3xl font-medium text-ink">Connect your assistant</h1>
+	<h1 class="text-3xl font-bold tracking-tight text-ink">Connect your assistant</h1>
 	<p class="mt-3 max-w-2xl text-ink-2">
 		The server has one URL and needs no key or account. Add it to your client, then ask about a
 		story.
@@ -69,7 +69,7 @@
 		</nav>
 
 		<section class="min-w-0" aria-live="polite">
-			<h2 class="text-xl font-medium text-ink">{current.label}</h2>
+			<h2 class="text-xl font-semibold text-ink">{current.label}</h2>
 			<p class="mt-2 text-ink-2">{current.steps}</p>
 			{#if current.install}
 				<div class="mt-4"><Button variant="primary" href={current.install.href}>{current.install.label}</Button></div>
@@ -85,7 +85,7 @@
 	</div>
 
 	<section class="mt-16" aria-labelledby="trouble">
-		<h2 id="trouble" class="text-xl font-medium text-ink">Troubleshooting</h2>
+		<h2 id="trouble" class="text-xl font-semibold text-ink">Troubleshooting</h2>
 		<div class="mt-4 divide-y divide-line rounded-lg border border-line">
 			{#each troubles as [q, a]}
 				<details class="group p-4">

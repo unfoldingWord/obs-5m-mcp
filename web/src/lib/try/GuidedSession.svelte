@@ -1,5 +1,5 @@
 <script lang="ts">
-	import { onDestroy, onMount, untrack } from 'svelte';
+	import { onDestroy, onMount, tick, untrack } from 'svelte';
 	import { ArrowLeft, ArrowRight } from 'lucide-svelte';
 	import ResultViewer from '$lib/components/ResultViewer.svelte';
 	import { endpoint } from '$lib/endpoint.svelte';
@@ -7,6 +7,7 @@
 	import type { ToolInfo } from '$lib/mcp/client';
 	import type { TryState } from './hashState';
 	import { validPanels } from './panels';
+	import { revealOnNarrow } from '$lib/reveal';
 
 	let {
 		tools,
@@ -92,9 +93,23 @@
 		onstate({ tab: 'guided', lang, story, part, ...(canChooseView ? { view } : {}) });
 	}
 
-	function go(delta: number) {
-		step = Math.min(flow.length - 1, Math.max(0, step + delta));
+	let resultEl = $state<HTMLElement>();
+
+	/** A choice made by the person: load it and, on a phone, scroll to it. */
+	async function choose() {
 		void show();
+		await tick();
+		revealOnNarrow(resultEl);
+	}
+
+	function pick(i: number) {
+		if (i < 0) return;
+		step = i;
+		choose();
+	}
+
+	function go(delta: number) {
+		pick(Math.min(flow.length - 1, Math.max(0, step + delta)));
 	}
 
 	onMount(async () => {
@@ -120,7 +135,7 @@
 				bind:value={lang}
 				onchange={async () => {
 					await loadStories();
-					await show();
+					choose();
 				}}
 			>
 				{#each languages as l}<option value={l.code}>{l.name} ({l.code})</option>{/each}
@@ -128,7 +143,7 @@
 		</div>
 		<div>
 			<label for="g-story" class="text-xs text-ink-2">Story</label>
-			<select id="g-story" class={control} bind:value={story} onchange={show}>
+			<select id="g-story" class={control} bind:value={story} onchange={choose}>
 				{#each stories as s}<option value={s.story}>{s.story}. {s.title}</option>{/each}
 			</select>
 		</div>
@@ -139,7 +154,7 @@
 				class={control}
 				placeholder={supportsRanges ? '5 or 5-8' : '5'}
 				bind:value={range}
-				onchange={show}
+				onchange={choose}
 				aria-invalid={!rangeOk}
 			/>
 			{#if !rangeOk}
@@ -158,7 +173,7 @@
 							aria-pressed={view === id}
 							onclick={() => {
 								view = id as 'leader' | 'community';
-								void show();
+								choose();
 							}}
 							class="rounded px-2 py-1 text-xs {view === id ? 'bg-accent text-on-accent' : 'text-ink-2 hover:text-ink'}"
 							>{label}</button
@@ -172,15 +187,23 @@
 				</p>
 			</fieldset>
 		{/if}
-		<ol class="space-y-0.5 border-t border-line pt-4" aria-label="Session parts">
+		<div class="lg:hidden">
+			<label for="g-part" class="text-xs text-ink-2">Part of the session</label>
+			<select
+				id="g-part"
+				class={control}
+				value={part}
+				onchange={(e) => pick(flow.indexOf(e.currentTarget.value))}
+			>
+				{#each flow as p}<option value={p}>{LABELS[p] ?? p}</option>{/each}
+			</select>
+		</div>
+		<ol class="hidden space-y-0.5 border-t border-line pt-4 lg:block" aria-label="Session parts">
 			{#each flow as p, i}
 				<li>
 					<button
 						type="button"
-						onclick={() => {
-							step = i;
-							void show();
-						}}
+						onclick={() => pick(i)}
 						aria-current={i === step ? 'step' : undefined}
 						class="w-full rounded px-2 py-1 text-left text-sm {i === step
 							? 'bg-surface text-ink'
@@ -191,9 +214,9 @@
 		</ol>
 	</aside>
 
-	<div class="min-w-0 space-y-3">
+	<div class="min-w-0 scroll-mt-20 space-y-3" bind:this={resultEl} data-result>
 		<div class="flex items-center justify-between gap-3">
-			<h2 class="font-medium text-ink">{LABELS[part] ?? part}</h2>
+			<h2 class="font-semibold text-ink">{LABELS[part] ?? part}</h2>
 			<div class="flex gap-2">
 				<button
 					type="button"
@@ -216,5 +239,12 @@
 			{pending}
 			onretry={show}
 		/>
+		{#if step < flow.length - 1}
+			<button
+				type="button"
+				class="inline-flex w-full items-center justify-center gap-2 rounded-md bg-accent px-3 py-2.5 text-sm font-semibold text-on-accent sm:w-auto"
+				onclick={() => go(1)}>Next: {LABELS[flow[step + 1]] ?? flow[step + 1]} <ArrowRight size={14} /></button
+			>
+		{/if}
 	</div>
 </div>

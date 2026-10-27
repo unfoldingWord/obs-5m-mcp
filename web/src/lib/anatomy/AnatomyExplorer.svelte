@@ -8,6 +8,11 @@
 	import { connect, hasParam, run } from '$lib/mcp/session';
 	import type { ToolInfo } from '$lib/mcp/client';
 	import { encodeTryState } from '$lib/try/hashState';
+	import { revealOnNarrow } from '$lib/reveal';
+	import { ART_CREDIT, panelSrc } from '$lib/obs/storyboard';
+
+	/** Story 1 panels that picture a part; the others are text only. */
+	const ART: Partial<Record<string, string>> = { intro: '01-02', frames: '01-05', movement1: '01-05' };
 
 	const saved = snapshot as Record<string, string>;
 	let selected = $state<AnatomyPart>(ANATOMY_PARTS[3]);
@@ -61,9 +66,12 @@
 		return body.slice(0, cut > 300 ? cut : 600).trimEnd() + '\n\n…';
 	}
 
+	let card = $state<HTMLElement>();
+
 	function choose(p: AnatomyPart) {
 		selected = p;
 		void load(p);
+		revealOnNarrow(card);
 	}
 
 	onMount(async () => {
@@ -78,7 +86,23 @@
 </script>
 
 <div class="grid gap-6 md:grid-cols-[minmax(0,15rem)_minmax(0,1fr)]">
-	<ol class="space-y-1" aria-label="Parts of a story">
+	<div class="md:hidden">
+		<label for="a-part" class="text-xs text-ink-2">Part of the story</label>
+		<select
+			id="a-part"
+			class="w-full rounded-md border border-line-strong bg-bg px-2.5 py-2 text-sm text-ink"
+			value={selected.part}
+			onchange={(e) => {
+				const p = ANATOMY_PARTS.find((x) => x.part === e.currentTarget.value);
+				if (p) choose(p);
+			}}
+		>
+			{#each ANATOMY_PARTS as p (p.part)}
+				<option value={p.part}>{p.group === 'movements' ? p.title.split(':')[0] : p.title}</option>
+			{/each}
+		</select>
+	</div>
+	<ol class="hidden space-y-1 md:block" aria-label="Parts of a story">
 		{#each ANATOMY_PARTS as p, i (p.part)}
 			{#if i === 3}
 				<li class="pt-3 pb-1 text-xs text-accent-2">Five Movements</li>
@@ -105,15 +129,30 @@
 		{/each}
 	</ol>
 
-	<article class="min-w-0 rounded-lg border border-line bg-surface p-5">
-		<h3 class="text-lg font-medium text-ink">{selected.title}</h3>
+	<article class="min-w-0 scroll-mt-20 rounded-md bg-surface p-5 sm:p-6" bind:this={card} data-anatomy-card>
+		{#if ART[selected.part]}
+			<figure class="mb-5">
+				<img
+					src={panelSrc(ART[selected.part]!)}
+					alt="Open Bible Stories panel {ART[selected.part]}"
+					width="560"
+					height="315"
+					loading="lazy"
+					class="aspect-[16/9] w-full rounded-md object-cover sm:max-w-md"
+				/>
+				<figcaption class="mt-1.5 text-xs text-ink-2">
+					Panel {ART[selected.part]} · {ART_CREDIT.text}
+				</figcaption>
+			</figure>
+		{/if}
+		<h3 class="text-xl font-semibold text-ink">{selected.title}</h3>
 		<ul class="mt-2 flex flex-wrap gap-2">
 			{#each selected.contains as c}
 				<li class="rounded border border-line-strong px-2 py-0.5 text-xs text-ink-2">{c}</li>
 			{/each}
 		</ul>
 
-		<div class="mt-5 rounded-md border border-line bg-bg p-4">
+		<div class="mt-5 rounded-md bg-bg p-4">
 			<p class="mb-2 font-mono text-[11px] text-accent-2">
 				{isLive ? 'Live from the server · story 1' : 'Saved example · story 1'}
 			</p>

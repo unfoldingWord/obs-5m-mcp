@@ -10,11 +10,17 @@
 
 <header class="sticky top-0 z-20 border-b border-line bg-bg">
 	<div class="mx-auto flex h-14 max-w-6xl items-center gap-4 px-4">
-		<a href="/" class="flex items-center gap-2 font-medium text-ink">
-			<img src="/favicon.svg" alt="" class="h-5 w-5" />
-			{SITE.name}
+		<!-- Product type first, so the site never reads as the official OBS site. -->
+		<a href="/" class="flex min-w-0 items-center gap-2.5 text-ink" aria-label={SITE.fullName}>
+			<img src="/favicon.svg" alt="" class="h-7 w-7 shrink-0" />
+			<span class="flex min-w-0 flex-col leading-tight">
+				<span class="text-[15px] font-bold tracking-tight">MCP Server</span>
+				<span class="truncate text-xs text-ink-2">
+					<span class="md:hidden">OBS + Theological Formation</span>
+					<span class="hidden md:inline">Open Bible Stories + Theological Formation</span>
+				</span>
+			</span>
 		</a>
-		<span class="hidden rounded border border-line-strong px-1.5 text-xs text-ink-2 sm:inline">read-only</span>
 		<nav class="ml-auto hidden items-center gap-1 md:flex" aria-label="Main">
 			{#each nav.slice(1) as item}
 				<a

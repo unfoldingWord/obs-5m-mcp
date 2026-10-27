@@ -55,7 +55,7 @@
 <div class="mx-auto max-w-7xl px-4 py-10">
 	<div class="flex flex-wrap items-end justify-between gap-4">
 		<div>
-			<h1 class="text-3xl font-medium text-ink">Try it</h1>
+			<h1 class="text-3xl font-bold tracking-tight text-ink">Try it</h1>
 			<p class="mt-2 max-w-2xl text-sm text-ink-2">
 				Everything here calls the live server below, the same way an assistant does. No key needed.
 				The server allows a limited number of calls per minute.

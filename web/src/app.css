@@ -130,3 +130,22 @@ body {
 .prose th,
 .prose td { border: 1px solid var(--border); padding: 4px 8px; text-align: left; }
 .prose > :first-child { margin-top: 0; }
+
+/* Entrance: the hero rises once on load. Content stays visible without motion. */
+@media (prefers-reduced-motion: no-preference) {
+	.rise {
+		animation: rise 0.7s cubic-bezier(0.2, 0.7, 0.2, 1) both;
+	}
+	.rise-2 {
+		animation-delay: 0.12s;
+	}
+	.float-card {
+		animation: rise 0.7s 0.45s cubic-bezier(0.2, 0.7, 0.2, 1) both;
+	}
+}
+@keyframes rise {
+	from {
+		opacity: 0;
+		transform: translateY(24px);
+	}
+}

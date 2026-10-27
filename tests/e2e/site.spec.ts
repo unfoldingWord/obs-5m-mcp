@@ -34,6 +34,41 @@ test("one click on an example makes one tool call", async ({ page }) => {
   expect(toolCalls.filter((b) => b.includes("list_languages"))).toHaveLength(1);
 });
 
+test.describe("on a phone, choosing something shows its result", () => {
+  test.use({ viewport: { width: 390, height: 844 } });
+  const inView = async (page: import("@playwright/test").Page, selector: string) => {
+    const box = await page.locator(selector).first().boundingBox();
+    return !!box && box.y < 844 && box.y + 40 > 0;
+  };
+
+  test("guided session: picking a part brings its content into view", async ({ page }) => {
+    await page.goto("/try");
+    await expect(page.getByText(/Connected/)).toBeVisible({ timeout: 20_000 });
+    await page.locator("#g-part").selectOption("movement2");
+    await expect(page.getByRole("heading", { name: /Movement 2/ }).first()).toBeVisible({ timeout: 15_000 });
+    await page.waitForTimeout(800);
+    expect(await inView(page, "[data-result]")).toBe(true);
+  });
+
+  test("tools: running an example brings the result into view", async ({ page }) => {
+    await page.goto("/try");
+    await expect(page.getByText(/Connected/)).toBeVisible({ timeout: 20_000 });
+    await page.getByRole("tab", { name: "Tools" }).click();
+    await expect(page.locator("#t-tool")).toBeVisible();
+    await page.getByRole("button", { name: "Languages", exact: true }).click();
+    await expect(page.getByText("list_languages ·")).toBeVisible({ timeout: 15_000 });
+    await page.waitForTimeout(800);
+    expect(await inView(page, "[data-result]")).toBe(true);
+  });
+
+  test("home anatomy: picking a part brings its card into view", async ({ page }) => {
+    await page.goto("/");
+    await page.locator("#a-part").selectOption("movement5");
+    await page.waitForTimeout(800);
+    expect(await inView(page, "[data-anatomy-card]")).toBe(true);
+  });
+});
+
 test("the limits page only names fields the server sends", async ({ page }) => {
   await page.goto("/docs/limits");
   await expect(page.getByRole("heading", { name: "Limits and sizes" })).toBeVisible();

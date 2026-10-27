@@ -1,5 +1,5 @@
 <script lang="ts">
-	import { onDestroy, untrack } from 'svelte';
+	import { onDestroy, tick, untrack } from 'svelte';
 	import ResultViewer from '$lib/components/ResultViewer.svelte';
 	import ToolForm from '$lib/components/ToolForm.svelte';
 	import CodeTabs from '$lib/components/CodeTabs.svelte';
@@ -10,6 +10,7 @@
 	import { PRESETS, type Preset } from './presets';
 	import { curlFor, inspectorFor } from './copyAs';
 	import type { TryState } from './hashState';
+	import { revealOnNarrow } from '$lib/reveal';
 
 	let {
 		tools,
@@ -43,6 +44,16 @@
 		onstate({ tab: 'tools', tool: name });
 	}
 
+	let resultEl = $state<HTMLElement>();
+
+	/** Run because the person asked: on a phone, scroll to the answer. */
+	async function runAndReveal() {
+		void exec();
+		// Let the form and result settle first (an example can switch the tool).
+		await tick();
+		revealOnNarrow(resultEl);
+	}
+
 	async function exec() {
 		const args = argsFromValues(fields, values);
 		lastArgs = args;
@@ -57,7 +68,7 @@
 	function usePreset(p: Preset) {
 		selected = p.tool;
 		values = { ...p.args };
-		void exec();
+		runAndReveal();
 	}
 
 	// A shared link with arguments runs right away.
@@ -66,8 +77,19 @@
 
 <div class="grid gap-6 lg:grid-cols-[minmax(0,14rem)_minmax(0,20rem)_minmax(0,1fr)]">
 	<nav aria-label="Tools">
-		<p class="mb-2 text-xs text-ink-2">Tools</p>
-		<ul class="space-y-0.5">
+		<div class="lg:hidden">
+			<label for="t-tool" class="text-xs text-ink-2">Tool</label>
+			<select
+				id="t-tool"
+				class="w-full rounded-md border border-line-strong bg-bg px-2.5 py-1.5 font-mono text-[13px] text-ink"
+				value={selected}
+				onchange={(e) => choose(e.currentTarget.value)}
+			>
+				{#each tools as t (t.name)}<option value={t.name}>{t.name}</option>{/each}
+			</select>
+		</div>
+		<p class="mb-2 hidden text-xs text-ink-2 lg:block">Tools</p>
+		<ul class="hidden space-y-0.5 lg:block">
 			{#each tools as t (t.name)}
 				<li>
 					<button
@@ -104,13 +126,15 @@
 				<p class="mt-1 text-xs text-ink-2">{tool.description}</p>
 			</div>
 			{#key selected}
-				<ToolForm {fields} bind:values onrun={exec} />
+				<ToolForm {fields} bind:values onrun={runAndReveal} />
 			{/key}
 		{/if}
 	</div>
 
 	<div class="min-w-0 space-y-4">
+		<div class="scroll-mt-20" bind:this={resultEl} data-result>
 		<ResultViewer tool={selected} result={answer?.result ?? null} outcome={answer?.outcome ?? null} {pending} onretry={exec} />
+		</div>
 		{#if answer?.result}
 			<div>
 				<p class="mb-2 text-xs text-ink-2">The same call outside the browser</p>

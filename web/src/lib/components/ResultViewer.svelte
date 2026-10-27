@@ -51,7 +51,7 @@
 			</p>
 		{/if}
 	</div>
-	<div class="max-h-[70vh] overflow-auto p-4">
+	<div class="overflow-x-auto p-4 lg:max-h-[70vh] lg:overflow-y-auto">
 		{#if pending}
 			<p class="text-sm text-ink-2">Calling the server…</p>
 		{:else if outcome && outcome.kind !== 'ok'}

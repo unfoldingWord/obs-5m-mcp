@@ -30,7 +30,7 @@
 </svelte:head>
 
 <div class="mx-auto max-w-6xl px-4 py-14">
-	<h1 class="text-3xl font-medium text-ink">Tools</h1>
+	<h1 class="text-3xl font-bold tracking-tight text-ink">Tools</h1>
 	<p class="mt-3 max-w-2xl text-ink-2">
 		{data.tools.length} read-only tools. This page is generated from the server’s own tool list, so it
 		always matches what the server accepts.
@@ -38,7 +38,7 @@
 
 	{#each GROUPS as [group, heading, line]}
 		<section class="mt-12" aria-labelledby="g-{group}">
-			<h2 id="g-{group}" class="text-xl font-medium text-ink">{heading}</h2>
+			<h2 id="g-{group}" class="text-xl font-semibold text-ink">{heading}</h2>
 			<p class="mt-1 text-sm text-ink-2">{line}</p>
 			<div class="mt-5 space-y-4">
 				{#each data.tools.filter((t) => t.group === group) as tool (tool.name)}

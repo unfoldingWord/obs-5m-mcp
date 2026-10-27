@@ -54,13 +54,14 @@
 <style>
 	.docs :global(h1) {
 		font-size: 1.875rem;
-		font-weight: 500;
+		font-weight: 700;
+		letter-spacing: -0.02em;
 		color: var(--text);
 	}
 	.docs :global(h2) {
 		margin-top: 2.25rem;
 		font-size: 1.25rem;
-		font-weight: 500;
+		font-weight: 600;
 		color: var(--text);
 	}
 	.docs :global(p),

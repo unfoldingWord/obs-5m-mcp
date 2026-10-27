@@ -1,11 +1,12 @@
 <script lang="ts">
 	import { SITE } from '$lib/site';
+	import { ART_CREDIT } from '$lib/obs/storyboard';
 </script>
 
-<footer class="mt-24 border-t border-line">
+<footer class="border-t border-line">
 	<div class="mx-auto grid max-w-6xl gap-8 px-4 py-10 text-sm sm:grid-cols-3">
 		<div>
-			<p class="font-medium text-ink">{SITE.name}</p>
+			<p class="font-semibold text-ink">{SITE.fullName}</p>
 			<p class="mt-2 text-ink-2">
 				An MCP server for Open Bible Stories + Theological Formation, by unfoldingWord.
 			</p>
@@ -16,7 +17,8 @@
 				<li><a class="hover:text-ink" href={SITE.links.formationStories}>Formation Stories</a></li>
 				<li><a class="hover:text-ink" href={SITE.links.openBibleStories}>Open Bible Stories</a></li>
 				<li><a class="hover:text-ink" href={SITE.links.enRepo}>en_obs-tf on Door43</a></li>
-				<li><a class="hover:text-ink" href={SITE.links.license}>License: CC BY-SA 4.0</a></li>
+				<li><a class="hover:text-ink" href={SITE.links.license}>Content: CC BY-SA 4.0</a></li>
+				<li><a class="hover:text-ink" href={ART_CREDIT.href}>{ART_CREDIT.text}</a></li>
 			</ul>
 		</div>
 		<div>

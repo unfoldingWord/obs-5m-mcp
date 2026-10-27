@@ -1,6 +1,9 @@
 /** One place for the site's name and the links every page uses. */
 export const SITE = {
+	/** Short name, for browser tabs and the footer. */
 	name: 'OBS-TF MCP',
+	/** What the product is, as the site says it. */
+	fullName: 'MCP Server for Open Bible Stories with Theological Formation',
 	repo: 'https://github.com/unfoldingWord/obs-5m-mcp',
 	links: {
 		formationStories: 'https://formationstories.org/',
