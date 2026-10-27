@@ -1,5 +1,5 @@
 /**
- * Formation Stories framing for chat + MCP agents.
+ * Formation Stories framing sent to MCP clients in the server instructions.
  * Distilled from https://formationstories.org/introduction/, /obs/, /plan/
  * (Strategic Mission Collective; built on unfoldingWord Open Bible Stories; CC BY-SA 4.0).
  */

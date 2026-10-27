@@ -17,7 +17,6 @@
     "test:contracts": "vitest run tests/contracts/",
     "test:ci": "vitest run --reporter=dot",
     "test:smoke": "tsx scripts/smoke-mcp.ts",
-    "test:chat-eval": "tsx scripts/eval-chat.ts",
     "ingest:id": "tsx scripts/ingest-indonesian-pdfs.ts",
     "convert:id": "tsx scripts/convert-pdf-to-md.ts",
     "convert:id:from-pdf": "tsx scripts/convert-pdf-to-md.ts --from-pdf",

@@ -1,4 +1,4 @@
-import { OBS_FORMATION_CONTEXT } from "../chat/obsFormationContext.js";
+import { OBS_FORMATION_CONTEXT } from "./formationContext.js";
 
 export const SERVER_INSTRUCTIONS = `
 You are an AI assistant connected to OBS Theological Formation MCP (OBS-TF MCP) — Open Bible Stories + Five Movements.
