@@ -16,8 +16,8 @@
 			text: 'Get the full session in order, or only the part your group is on: the introduction, the story panels, the community study, one movement, the drafting or checking step, or the conclusion.'
 		},
 		{
-			title: 'Down to a single panel',
-			text: 'Ask for panel 5 of story 1 and get the questions for that panel only, not the whole story.'
+			title: 'Down to the panels you need',
+			text: 'Ask for panel 5, or panels 5 to 8, of story 1 and get the questions for those panels only, with or without the manual’s answers.'
 		},
 		{
 			title: 'The manual’s own words',

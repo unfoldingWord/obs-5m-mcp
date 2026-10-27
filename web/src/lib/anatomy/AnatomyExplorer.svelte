@@ -163,7 +163,7 @@
 			{/if}
 		</div>
 
-		<dl class="mt-5 grid gap-3 text-sm">
+		<dl class="mt-5 grid grid-cols-[minmax(0,1fr)] gap-3 text-sm">
 			<div>
 				<dt class="text-xs text-ink-2">A person asks</dt>
 				<dd class="mt-0.5 text-ink">“{selected.ask}”</dd>
