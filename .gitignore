@@ -25,3 +25,5 @@ web/dist/
 web/.env
 web/.dev.vars
 
+test-results/
+playwright-report/

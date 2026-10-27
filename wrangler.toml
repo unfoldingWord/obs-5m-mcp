@@ -5,7 +5,7 @@ compatibility_flags = ["nodejs_compat", "global_fetch_strictly_public"]
 # unfoldingWord Cloudflare account
 account_id = "5a3ffd86280d3ed086be76d955829242"
 
-# Svelte chat UI (npm run build:web → web/dist). Worker handles APIs first.
+# The website (npm run build:web → web/dist). The Worker answers /mcp and /api first.
 [assets]
 directory = "web/dist"
 binding = "ASSETS"
@@ -38,3 +38,19 @@ new_sqlite_classes = ["Obs5mMCP"]
 PUBLIC_BASE_URL = "https://obs-5m-mcp.unfoldingword.workers.dev"
 # RATE_LIMIT_RPM = "90"   # optional; default 90 when unset. Set "0" to disable.
 # MCP_API_KEY is a wrangler secret (not a plaintext var) when enabling auth.
+
+# Worker Previews: one isolated copy of the Worker per branch or pull request
+# (https://developers.cloudflare.com/workers/previews/). Durable Objects get a
+# fresh namespace per preview automatically. The cache uses the separate
+# preview KV namespace, so previews never write to the production cache.
+[previews.vars]
+# Empty: the Worker uses each request's own origin, so a preview links to itself.
+PUBLIC_BASE_URL = ""
+
+[[previews.kv_namespaces]]
+binding = "OBS_5M_CACHE"
+id = "57e62549ea044792b846c86c024fa661"
+
+[[previews.durable_objects.bindings]]
+name = "MCP_AGENT"
+class_name = "Obs5mMCP"

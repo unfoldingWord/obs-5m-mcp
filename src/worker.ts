@@ -2,17 +2,13 @@
  * Cloudflare Worker entry — obs-5m-mcp
  *
  * Routes (worker-first):
- *   /                     → HTML home
- *   /docs                 → Agent / translator guide
- *   /api                  → JSON discovery
  *   /mcp[/]*              → Obs5mMCP Durable Object
  *   /api/mcp-manifest     → JSON tool manifest
  *   /api/tool             → direct tool invoke (POST); debug:true adds X-ray
- *   /debug                → X-ray UI
  *   /assets/pdf/<r2Key>   → stream PDF from R2
  *   /health               → liveness
- *   /chat, /_app/*        → Svelte static assets (env.ASSETS)
- *   /api/chat             → skillChat SSE (Worker)
+ *   /api, /llms.txt, /chat, /debug → src/core/siteRoutes.ts
+ *   everything else       → the static site in web/dist (env.ASSETS)
  */
 
 import { Obs5mMCP, type Env } from "./mcp/agent.js";
@@ -23,11 +19,8 @@ import { VERSION, SERVER_NAME } from "./core/version.js";
 import { runWithXray } from "./core/xray/context.js";
 import { XraySession } from "./core/xray/traceEvents.js";
 import { formatXrayReport } from "./core/xray/formatReport.js";
-import { renderDebugPage } from "./core/xray/debugPage.js";
-import { handleChatRequest } from "./chat/chatHandler.js";
-import { renderAgentGuidePage } from "./docs/agentGuidePage.js";
-import { apiDiscoveryJson, renderHomePage } from "./docs/homePage.js";
 import { enforceOptionalMcpApiKey } from "./core/mcpAuth.js";
+import { handleSiteRoute } from "./core/siteRoutes.js";
 import { enforceRateLimit } from "./core/rateLimit.js";
 import {
   gateStreamableHttpMethods,
@@ -84,68 +77,18 @@ export default {
       return handleToolCall(request, env);
     }
 
-    if (url.pathname === "/debug" && request.method === "GET") {
-      const html = renderDebugPage(env.PUBLIC_BASE_URL || url.origin);
-      return new Response(html, {
-        status: 200,
-        headers: { "Content-Type": "text/html; charset=utf-8" },
-      });
-    }
-
-    if (url.pathname === "/docs" || url.pathname === "/docs/") {
-      const html = renderAgentGuidePage(env.PUBLIC_BASE_URL || url.origin);
-      return new Response(html, {
-        status: 200,
-        headers: { "Content-Type": "text/html; charset=utf-8" },
-      });
-    }
-
-    if (
-      (url.pathname === "/api/chat" && request.method === "POST") ||
-      (url.pathname === "/api/chat" && request.method === "OPTIONS")
-    ) {
-      return handleChatRequest(request, env);
-    }
-
     if (url.pathname.startsWith("/assets/pdf/")) {
       return servePdf(url.pathname.slice("/assets/pdf/".length), env);
     }
 
-    if (url.pathname === "/api" && request.method === "GET") {
-      return Response.json(
-        apiDiscoveryJson(
-          env.PUBLIC_BASE_URL || url.origin,
-          VERSION,
-          SERVER_NAME,
-        ),
-        { headers: { "Access-Control-Allow-Origin": "*" } },
-      );
-    }
-
-    if (url.pathname === "/" || url.pathname === "") {
-      const accept = request.headers.get("Accept") ?? "";
-      if (accept.includes("application/json") && !accept.includes("text/html")) {
-        return Response.json(
-          apiDiscoveryJson(
-            env.PUBLIC_BASE_URL || url.origin,
-            VERSION,
-            SERVER_NAME,
-          ),
-          { headers: { "Access-Control-Allow-Origin": "*" } },
-        );
-      }
-      const html = renderHomePage(env.PUBLIC_BASE_URL || url.origin);
-      return new Response(html, {
-        status: 200,
-        headers: { "Content-Type": "text/html; charset=utf-8" },
-      });
-    }
+    const site = handleSiteRoute(request, url.origin);
+    if (site) return site;
 
     if (env.ASSETS) {
       return env.ASSETS.fetch(request);
     }
     return new Response(
-      "Chat UI is not built. Run `npm run build:web` and restart wrangler.",
+      "The site is not built. Run `npm run build:web` and restart wrangler.",
       { status: 503 },
     );
   },

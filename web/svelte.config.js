@@ -20,7 +20,9 @@ const config = {
 		}),
 		prerender: {
 			// Worker-owned routes (/docs, /mcp, /debug, /) are not Svelte pages.
-			handleHttpError: 'warn'
+			handleHttpError: 'warn',
+			// #… on /try links is page state, not an element id.
+			handleMissingId: 'ignore'
 		},
 		paths: {
 			base: BASE_PATH,
@@ -28,9 +30,7 @@ const config = {
 		},
 		alias: {
 			$lib: './src/lib',
-			$chat: '../src/chat',
 			$mcp: '../src/mcp',
-			$core: '../src/core',
 			$content: '../src/content'
 		}
 	}

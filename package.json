@@ -7,7 +7,7 @@
   "scripts": {
     "dev": "wrangler dev --port 8790",
     "dev:web": "npm run dev --prefix web",
-    "build:web": "npm run build --prefix web",
+    "build:web": "tsx scripts/build-anatomy-snapshot.ts && npm run build --prefix web",
     "deploy": "npm run build:web && wrangler deploy",
     "deploy:with-web": "npm run build:web && wrangler deploy",
     "typecheck": "tsc --noEmit",
@@ -17,14 +17,15 @@
     "test:contracts": "vitest run tests/contracts/",
     "test:ci": "vitest run --reporter=dot",
     "test:smoke": "tsx scripts/smoke-mcp.ts",
-    "test:chat-eval": "tsx scripts/eval-chat.ts",
     "ingest:id": "tsx scripts/ingest-indonesian-pdfs.ts",
     "convert:id": "tsx scripts/convert-pdf-to-md.ts",
     "convert:id:from-pdf": "tsx scripts/convert-pdf-to-md.ts --from-pdf",
     "plain-md": "tsx scripts/plain-pdf-to-md.ts",
     "export:dcs": "tsx scripts/export-dcs-repo.ts",
     "check:coverage": "tsx scripts/check-pdf-content-coverage.ts",
-    "prepare": "node -e \"process.exit(0)\""
+    "prepare": "node -e \"process.exit(0)\"",
+    "check:web": "npm run check --prefix web",
+    "test:e2e": "playwright test"
   },
   "dependencies": {
     "@modelcontextprotocol/sdk": "1.15.1",
@@ -37,6 +38,7 @@
   },
   "devDependencies": {
     "@cloudflare/workers-types": "^4.20260528.1",
+    "@playwright/test": "^1.56.1",
     "@types/node": "^20.19.43",
     "tsx": "^4.20.3",
     "typescript": "^5.3.3",
