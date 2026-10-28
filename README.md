@@ -53,18 +53,19 @@ Install the Playwright browser once with `npx playwright install chromium`.
 
 ## Previews
 
-`wrangler.toml` has a `previews` block for [Cloudflare Worker Previews](https://developers.cloudflare.com/workers/previews/): one isolated copy of the Worker per branch or pull request, with its own Durable Object storage and the preview KV namespace for the cache. To turn previews on, someone with access to the unfoldingWord Cloudflare account must:
+`wrangler.toml` has a `previews` block for [Cloudflare Worker Previews](https://developers.cloudflare.com/workers/previews/): one isolated copy of the Worker per branch or pull request, with its own Durable Object storage and the preview KV namespace for the cache. Wrangler 4.135.0 or later is required (this repo pins `wrangler` ^4.140.0 and `@cloudflare/workers-types` v5). `agents` stays at 0.0.97; an npm `overrides` entry pins `partyserver` to 0.5.10 so its peer accepts workers-types v5.
 
-1. Update Wrangler to 4.135.0 or later. That needs `@cloudflare/workers-types` v5, which first needs a compatible version of `agents` (its `partyserver` dependency still asks for v4).
-2. Connect this repository to Workers Builds, which creates a preview for every pull request. Or add `CLOUDFLARE_API_TOKEN` and the account id as GitHub secrets and run `npx wrangler preview` in a workflow.
+This repository is connected to [Workers Builds](https://developers.cloudflare.com/workers/ci-cd/builds/). Every push to a branch other than `master` runs `npm ci --prefix web && npm run build:web`, then `npx wrangler preview`, so each pull request gets its own preview URL.
 
 ## Deploy
+
+Merging to `master` deploys production through Workers Builds: it runs the same build, then `npx wrangler deploy`. The build settings live in the Cloudflare dashboard (Workers & Pages → `obs-5m-mcp` → Settings → Builds), not in this repository.
+
+To deploy by hand:
 
 ```bash
 npm run deploy           # builds the site, then wrangler deploy
 ```
-
-The GitHub deploy workflow needs the `CLOUDFLARE_API_TOKEN` secret (see issue #5).
 
 ### Cloudflare setup
 
