@@ -8,9 +8,9 @@ export type Preset = {
 
 export const PRESETS: Preset[] = [
 	{
-		label: 'Story 1, panels 5–8, questions only',
+		label: 'Story 1, panels 5–8, observation questions without answers',
 		tool: 'fetch_obs_study_manual',
-		args: { reference: '1:5-8', part: 'movement1', include_answers: false },
+		args: { reference: '1:5-8', section: 'observation', include_answers: false },
 		needs: 'include_answers'
 	},
 	{

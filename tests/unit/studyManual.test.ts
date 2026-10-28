@@ -180,30 +180,106 @@ describe("studyManual (#36)", () => {
     expect(out).not.toContain("First?");
   });
 
-  it("questions-only view drops answers and everything around them (#17)", () => {
-    const payload = buildStudyManualPayload(loadBundle(), {
-      ref: parseObsTfReference("1:5-8")!,
-      part: "movement1",
-      includeAnswers: false,
-    });
-    const m1 = payload.movements[0];
-    expect(m1.observation).toHaveLength(4);
+  it("without answers drops only the Observation and Discourse answers (#17)", () => {
+    const ref = parseObsTfReference("1")!;
+    const leader = buildStudyManualPayload(loadBundle(), { ref });
+    const group = buildStudyManualPayload(loadBundle(), { ref, includeAnswers: false });
+
+    // Movement 1: questions stay, answers go; Translation Questions stay whole.
+    const m1 = group.movements.find((m) => m.id === 1)!;
+    expect(m1.observation).toHaveLength(16);
     for (const block of m1.observation ?? []) {
       for (const item of block.items) {
         expect(item.question.length).toBeGreaterThan(0);
         expect(item).not.toHaveProperty("answer");
       }
     }
+    expect(m1.translation).toEqual(leader.movements.find((m) => m.id === 1)!.translation);
+    expect(m1.markdown).toBeUndefined();
+
+    // Movement 2: discourse questions without answers; theological questions stay.
+    const m2 = group.movements.find((m) => m.id === 2)!;
+    expect(m2.discourse?.length).toBeGreaterThan(0);
+    for (const d of m2.discourse ?? []) {
+      expect(d.question.length).toBeGreaterThan(0);
+      expect(d.frameRefs.length).toBeGreaterThan(0);
+      expect(d).not.toHaveProperty("answer");
+    }
+    expect(m2.theological).toEqual(leader.movements.find((m) => m.id === 2)!.theological);
+
+    // The questions themselves are the leader's, word for word.
+    const leaderM1 = leader.movements.find((m) => m.id === 1)!;
+    const leaderM2 = leader.movements.find((m) => m.id === 2)!;
+    expect(m1.observation).toEqual(
+      leaderM1.observation?.map((b) => ({
+        frameId: b.frameId,
+        items: b.items.map((i) => ({ question: i.question })),
+      })),
+    );
+    expect(m2.discourse).toEqual(
+      leaderM2.discourse?.map((d) => ({ question: d.question, frameRefs: d.frameRefs })),
+    );
+    expect(m2.markdown).toBeUndefined();
+
+    // Nothing else changes.
+    expect(group.intro).toEqual(leader.intro);
+    expect(group.frames).toEqual(leader.frames);
+    expect(group.frames).toHaveLength(16);
+    expect(group.bibleSource).toEqual(leader.bibleSource);
+    expect(group.communityStudy).toEqual(leader.communityStudy);
+    expect(group.conclusion).toEqual(leader.conclusion);
+    for (const id of [3, 4, 5]) {
+      expect(group.movements.find((m) => m.id === id)).toEqual(
+        leader.movements.find((m) => m.id === id),
+      );
+    }
+
+    const md = formatStudyManualMd(group);
+    expect(md).not.toMatch(/\*\*A:\*\*/);
+    expect(md).toMatch(/Translation Questions/);
+    expect(md).toMatch(/Theological Questions/);
+    expect(md).not.toContain("God took six days.");
+  });
+
+  it("each part without answers matches the leader view except Movements 1 and 2 (#17)", () => {
+    const ref = parseObsTfReference("1")!;
+    for (const part of ["intro", "frames", "community", "drafting", "movement3", "checking", "movement4", "movement5", "conclusion"] as const) {
+      const leader = buildStudyManualPayload(loadBundle(), { ref, part });
+      const group = buildStudyManualPayload(loadBundle(), { ref, part, includeAnswers: false });
+      expect({ ...group, includeAnswers: true }, part).toEqual(leader);
+    }
+  });
+
+  it("section with no answers is the short list to hand to a team (#17)", () => {
+    const payload = buildStudyManualPayload(loadBundle(), {
+      ref: parseObsTfReference("1:5-8")!,
+      section: "observation",
+      includeAnswers: false,
+    });
+    const m1 = payload.movements[0];
+    expect(m1.observation).toHaveLength(4);
+    expect(m1.observation?.[0].items[0]).not.toHaveProperty("answer");
     expect(m1.translation).toBeUndefined();
     expect(payload.frames).toEqual([]);
     expect(payload.intro).toBeUndefined();
     expect(payload.communityStudy).toBeNull();
     expect(payload.conclusion).toBeNull();
     const md = formatStudyManualMd(payload);
-    expect(md).toMatch(/Observation Questions/);
     expect(md).not.toMatch(/\*\*A:\*\*/);
     expect(md).not.toMatch(/Translation Questions/);
     expect(JSON.stringify(payload).length).toBeLessThan(8_000);
+  });
+
+  it("a panel range without answers keeps that range's Translation Questions (#17)", () => {
+    const payload = buildStudyManualPayload(loadBundle(), {
+      ref: parseObsTfReference("1:5-8")!,
+      part: "movement1",
+      includeAnswers: false,
+    });
+    const m1 = payload.movements[0];
+    expect(m1.observation?.map((b) => b.frameId)).toEqual(["01-05", "01-06", "01-07", "01-08"]);
+    expect(m1.translation?.map((b) => b.frameId)).toEqual(["01-05", "01-06", "01-07", "01-08"]);
+    expect(formatStudyManualMd(payload)).not.toMatch(/\*\*A:\*\*/);
   });
 
   it("section picks one Movement 1 list and implies movement1", () => {

@@ -37,7 +37,7 @@
 
 	async function load(p: AnatomyPart) {
 		if (live[p.part] || !tools) return;
-		// A questions-only example needs a server that can leave answers out.
+		// An example without answers needs a server that can leave them out.
 		if (p.call.include_answers === false && !supportsAnswers) return;
 		const { result, outcome } = await run(endpoint(), 'fetch_obs_study_manual', {
 			...shownCallFor(p),

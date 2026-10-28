@@ -60,9 +60,10 @@ const inputSchema = z.object({
     .boolean()
     .optional()
     .describe(
-      "Default true. Set false for questions only, without the manual's answers, grouped by panel and " +
-        "ready to hand to a team. Leaves out the story text, devotion and wrap-up, and " +
-        'Translation Questions (ask for those with section: "translation").',
+      "Default true. Set false to leave out the manual's answers to the Observation Questions " +
+        "(Movement 1) and the Discourse Questions (Movement 2), for a group working through them. " +
+        "Everything else is returned as usual: the story, the Translation Questions, and every other part. " +
+        'For a short list to hand to a team, add section: "observation".',
     ),
   section: z
     .enum(STUDY_MANUAL_SECTIONS)

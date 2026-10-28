@@ -57,12 +57,30 @@ describe("tool handlers (mocked DCS)", () => {
     expect(total).toBeLessThan(32_768);
   });
 
-  it("fetch_obs_study_manual questions-only range is small and has no answers (#17)", async () => {
+  it("fetch_obs_study_manual without answers keeps the rest of the part (#17)", async () => {
     const result = await fetchObsStudyManualTool.handler(
       {
         reference: "1:5-8",
         language: "en",
         part: "movement1",
+        include_answers: false,
+        format: "json",
+      },
+      emptyEnv(),
+      "test-17-no-answers",
+    );
+    const text = result.content[0].text;
+    expect(text).not.toMatch(/\*\*A:\*\*/);
+    expect(text).toMatch(/Observation Questions/);
+    expect(text).toMatch(/Translation Questions/);
+  });
+
+  it("fetch_obs_study_manual observation list without answers is small (#17)", async () => {
+    const result = await fetchObsStudyManualTool.handler(
+      {
+        reference: "1:5-8",
+        language: "en",
+        section: "observation",
         include_answers: false,
         format: "json",
       },

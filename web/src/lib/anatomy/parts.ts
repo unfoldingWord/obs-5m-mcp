@@ -44,7 +44,7 @@ export const ANATOMY_PARTS: AnatomyPart[] = [
 		title: 'Biblical Interpretation: Observing the Details of the Story',
 		group: 'movements',
 		contains: ['Observation questions for each panel, with answers', 'Translation questions on key terms for each panel'],
-		ask: 'Give our group the observation questions for panels 5 to 8, without the answers.',
+		ask: 'Show our group Movement 1 for panels 5 to 8, without the answers.',
 		call: { reference: '1:5-8', part: 'movement1', include_answers: false }
 	},
 	{

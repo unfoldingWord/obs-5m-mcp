@@ -58,8 +58,9 @@ export interface StudyManualOptions {
    */
   includeCommunityStudy?: boolean;
   /**
-   * When false, return questions without the manual's answers (what a
-   * facilitator hands to a team). Default true.
+   * When false, leave out the manual's answers to the Observation Questions
+   * (Movement 1) and the Discourse Questions (Movement 2); everything else is
+   * returned as usual. Default true.
    */
   includeAnswers?: boolean;
   /** Return only one Movement 1 list: Observation or Translation Questions. */
@@ -172,6 +173,13 @@ function needsMarkdown(m: ObsTfMovement): boolean {
   return (m.id === 4 || m.id === 5) && !m.drafting && !m.checking;
 }
 
+/**
+ * Movements whose questions come with the manual's answers: Observation
+ * Questions (1) and Discourse Questions (2). Everything else in the manual
+ * is written for the whole group and has no answers to leave out.
+ */
+const HAS_ANSWERS = new Set([1, 2]);
+
 function toClientMovement(
   m: ObsTfMovement,
   opts: { includeAnswers: boolean; section?: StudyManualSection },
@@ -201,15 +209,13 @@ function toClientMovement(
         : { translation: m.translation ?? [] }),
     };
   }
-  if (!opts.includeAnswers) {
-    // Questions-only view: Translation Questions are guidance, not questions,
-    // so they come only with section: "translation".
-    delete out.translation;
-    // Prose movements (4–5) have no separate answers; keep their text.
-    if (!hasParsedLists(m) && markdown?.trim()) out.markdown = markdown;
-    return out;
+  // Only Movements 1 and 2 carry answers, and their raw text holds them, so
+  // without answers that text is never returned for them. If a language's
+  // Movement 1 or 2 ever fails to parse into lists, it comes back empty here
+  // rather than with its answers (all en and id stories parse today).
+  if (needsMarkdown(m) && (opts.includeAnswers || !HAS_ANSWERS.has(m.id))) {
+    out.markdown = markdown;
   }
-  if (needsMarkdown(m)) out.markdown = markdown;
   return out;
 }
 
@@ -244,8 +250,9 @@ export function buildStudyManualPayload(
     opts.section && (opts.part ?? "full") === "full" && opts.movement === undefined
       ? "movement1"
       : resolvePart(opts);
-  // Questions only: no story text, devotion or wrap-up around the questions.
-  const questionsOnly = !includeAnswers || opts.section !== undefined;
+  // A section is one compact list: no story text, devotion or wrap-up around it.
+  // Leaving out answers alone changes nothing else.
+  const questionsOnly = opts.section !== undefined;
   const narrow =
     part !== "full" &&
     part !== "intro" &&
