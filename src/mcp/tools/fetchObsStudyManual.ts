@@ -11,6 +11,7 @@ import { loadStoryBundle } from "../../content/contentService.js";
 import { parseObsTfReference } from "../../content/obsTfReference.js";
 import {
   buildStudyManualPayload,
+  formatStudyManualAssistantNote,
   formatStudyManualMd,
   renderStudyManual,
   STUDY_MANUAL_PARTS,
@@ -24,6 +25,7 @@ import {
   partnerMeta,
   withNotAvailableOutput,
   type ToolModule,
+  type ToolResult,
 } from "./shared.js";
 
 const REFERENCE_DESCRIPTION =
@@ -37,7 +39,7 @@ const PART_DESCRIPTION =
   "full (default) | intro | frames | community | movement1–movement5 | " +
   "drafting | checking | conclusion. " +
   "Content is always resolved (shared TX and story-unique inline look the same). " +
-  "Prefer part over inventing your own section order; see sessionFlow in structuredContent.";
+  "Prefer part over inventing your own section order; the second text block names the next part and its call.";
 
 const inputSchema = z.object({
   reference: z.string().min(1).describe(REFERENCE_DESCRIPTION),
@@ -90,7 +92,10 @@ export const fetchObsStudyManualTool: ToolModule<typeof inputSchema> = {
     "(observation, translation terms, discourse, theological, journal), plus drafting, " +
     "checking, ministry, missional, and conclusion — all packaging-resolved. " +
     "Use `part` to load one slice at a time. Preferred for BT Servant 5mOBS-translation " +
-    "(unfoldingWord/translation-helps-mcp#36).",
+    "(unfoldingWord/translation-helps-mcp#36). " +
+    "Relay the first text block to the user as written. The second text block is context for " +
+    "you (where the part sits in the session, the call for the next part, source and licence); " +
+    "do not show it to the user.",
   inputSchema,
   outputSchema: withNotAvailableOutput({
     resourceType: z.string().optional(),
@@ -154,19 +159,23 @@ export const fetchObsStudyManualTool: ToolModule<typeof inputSchema> = {
         section: params.section,
       });
       const rendered = renderStudyManual(payload, params.format);
+      const note = formatStudyManualAssistantNote(payload, params.format);
 
       if (params.format === "json") {
         // Text content is the slice as markdown, ready to relay as written;
         // the data is in structuredContent. Sending the JSON as text too would
         // double the response for clients that read only text.
-        return ok(
-          payload,
-          formatStudyManualMd(payload),
-          partnerMeta(
-            bundle.downstreamApiCalls,
-            bundle.cacheStatus === "hit" ? "hit" : "miss",
+        return withNote(
+          ok(
+            payload,
+            formatStudyManualMd(payload),
+            partnerMeta(
+              bundle.downstreamApiCalls,
+              bundle.cacheStatus === "hit" ? "hit" : "miss",
+            ),
+            { jsonText: false },
           ),
-          { jsonText: false },
+          note,
         );
       }
 
@@ -193,13 +202,16 @@ export const fetchObsStudyManualTool: ToolModule<typeof inputSchema> = {
         typeof rendered.content === "string"
           ? rendered.content.slice(0, 2000)
           : undefined;
-      return ok(
-        data,
-        human ?? `OBS study manual ${ref.canonical} (${rendered.format})`,
-        partnerMeta(
-          bundle.downstreamApiCalls,
-          bundle.cacheStatus === "hit" ? "hit" : "miss",
+      return withNote(
+        ok(
+          data,
+          human ?? `OBS study manual ${ref.canonical} (${rendered.format})`,
+          partnerMeta(
+            bundle.downstreamApiCalls,
+            bundle.cacheStatus === "hit" ? "hit" : "miss",
+          ),
         ),
+        note,
       );
     } catch (err) {
       if (isObs5mError(err) && err.code === ErrorCode.RESOURCE_NOT_FOUND) {
@@ -209,3 +221,9 @@ export const fetchObsStudyManualTool: ToolModule<typeof inputSchema> = {
     }
   },
 };
+
+/** The note goes second: md/text keep the JSON copy as the last block. */
+function withNote(result: ToolResult, note: string): ToolResult {
+  result.content.splice(1, 0, { type: "text", text: note });
+  return result;
+}

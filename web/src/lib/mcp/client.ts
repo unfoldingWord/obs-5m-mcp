@@ -23,6 +23,8 @@ export type ToolInfo = {
 
 export type CallResult = {
 	text: string;
+	/** The text blocks one by one; `text` joins them. */
+	blocks?: string[];
 	structured: Record<string, unknown> | null;
 	isError: boolean;
 	exchange: Exchange;
@@ -92,12 +94,12 @@ export class McpHttpClient {
 			structuredContent?: Record<string, unknown>;
 			isError?: boolean;
 		};
-		const text = (result.content ?? [])
+		const blocks = (result.content ?? [])
 			.filter((c) => c.type === 'text' && typeof c.text === 'string')
-			.map((c) => c.text)
-			.join('\n\n');
+			.map((c) => c.text as string);
 		return {
-			text,
+			text: blocks.join('\n\n'),
+			blocks,
 			structured: result.structuredContent ?? null,
 			isError: Boolean(result.isError),
 			exchange

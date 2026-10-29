@@ -586,6 +586,59 @@ export function formatStudyManualMd(data: StudyManualPayload): string {
   return lines.join("\n").trim() + "\n";
 }
 
+/**
+ * A short note for the assistant, sent as a second text block after the slice:
+ * where the part sits in the session, the call for the next part, and the
+ * source and licence. Clients that read only text get the context without the
+ * JSON. Keep it under 600 bytes.
+ */
+export function formatStudyManualAssistantNote(
+  data: StudyManualPayload,
+  format: StudyManualFormat,
+): string {
+  const lines = ["For the assistant (don't show this to the user):"];
+  const where =
+    data.frame === null
+      ? `Story ${data.story}`
+      : data.frameEnd !== null
+        ? `Story ${data.story}, frames ${data.frame}-${data.frameEnd}`
+        : `Story ${data.story}, frame ${data.frame}`;
+  const only = data.section ? ` · ${data.section} questions only` : "";
+  const flow = data.sessionFlow;
+  const i = flow.indexOf(data.part);
+  if (i === -1) {
+    lines.push(`${where} · ${data.part}${only}`);
+    lines.push("This result has every part of the session; there is no next part.");
+  } else {
+    lines.push(`${where} · ${data.part} (${i + 1} of ${flow.length})${only}`);
+    const next = flow[i + 1];
+    if (next) {
+      const args = {
+        reference: data.reference,
+        part: next,
+        language: data.language,
+        ...(data.includeAnswers ? {} : { include_answers: false }),
+        ...(format === "json" ? {} : { format }),
+      };
+      lines.push(`Next: ${next} → fetch_obs_study_manual ${JSON.stringify(args)}`);
+    } else {
+      lines.push("This is the last part of the session; there is no next part.");
+    }
+  }
+  if (!data.includeAnswers) {
+    lines.push(
+      "The answers to the Observation and Discourse Questions were left out (include_answers: false).",
+    );
+  }
+  const src = data.source;
+  lines.push(
+    "owner" in src
+      ? `Source: ${src.owner} ${src.repo}, ${src.license}${src.door43 ? `, ${src.door43}` : ""}`
+      : `Source: converted markdown in en_obs_tf shape (DCS has no entry for this language), ${src.license}`,
+  );
+  return lines.join("\n");
+}
+
 export function formatStudyManualText(data: StudyManualPayload): string {
   return formatStudyManualMd(data)
     .replace(/^#{1,6}\s+/gm, "")

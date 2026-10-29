@@ -13,7 +13,10 @@ export function renderedView(result: CallResult): RenderedView {
 		const blocks = result.text.split('\n\n');
 		const endsInJson = /^\s*[[{]/.test(blocks.at(-1) ?? '');
 		// A tool that sends its content as text (the study manual does) renders as markdown.
-		if (result.text.trim() && !endsInJson) return { kind: 'markdown', text: result.text };
+		// Only the first block: the study manual's second block is a note for the assistant.
+		if (result.text.trim() && !endsInJson) {
+			return { kind: 'markdown', text: result.blocks?.[0] ?? result.text };
+		}
 		// Otherwise the text is a one-line summary followed by the same data as JSON.
 		const first = blocks[0]?.trim() ?? '';
 		const summary = /^\s*[[{]/.test(first) ? '' : first;

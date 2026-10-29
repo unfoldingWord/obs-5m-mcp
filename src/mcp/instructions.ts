@@ -19,8 +19,8 @@ ${OBS_FORMATION_CONTEXT}
   - \`movement\` 1–5 still works; \`part\` is more precise for drafting/checking/conclusion
   - \`include_answers\`: false leaves out the answers to the Observation and Discourse Questions; nothing else changes
   - \`section\`: observation | translation — one Movement 1 list, without the story around it. \`section: "observation"\` with \`include_answers: false\` is the questions to hand to a team
-  - \`format\`: json (default) | md | text. With json, the text content is the slice as markdown (relay it as written); the data is in structuredContent
-  - In \`format: "json"\`, \`sessionFlow\`, \`sections\`, \`drafting\`, \`checking\`, \`conclusion\`, and \`source\` are in \`structuredContent\`
+  - \`format\`: json (default) | md | text. With json, the first text block is the slice as markdown (relay it as written); the data is in structuredContent
+  - The second text block is context for you, not for the user: where the part sits in \`sessionFlow\`, the exact call for the next part, and the source and licence. Do not show it to the user
 
 ## Translator session workflow
 1. list_languages / list_resources — what exists for the language

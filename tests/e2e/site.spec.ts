@@ -170,6 +170,20 @@ test("the try page calls this site's own server", async ({ page }) => {
   expect(calls.every((u) => u.startsWith("http://127.0.0.1:8790/"))).toBe(true);
 });
 
+test("try renders the study manual without the note for the assistant", async ({ page }) => {
+  const state = {
+    tab: "tools",
+    tool: "fetch_obs_study_manual",
+    args: { reference: "1:5-8", part: "movement1", format: "json" },
+  };
+  await page.goto("/try#" + Buffer.from(JSON.stringify(state)).toString("base64url"));
+  const result = page.locator("[data-result]");
+  await expect(result.getByText("01-05").first()).toBeVisible({ timeout: 20_000 });
+  await expect(result).not.toContainText("For the assistant");
+  await result.getByRole("tab", { name: "JSON-RPC" }).click();
+  await expect(result).toContainText("For the assistant");
+});
+
 test("one click on an example makes one tool call", async ({ page }) => {
   const toolCalls: string[] = [];
   page.on("request", (r) => {
