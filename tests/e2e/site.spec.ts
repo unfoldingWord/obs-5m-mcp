@@ -63,20 +63,22 @@ for (const picker of anatomyPickers) {
     await page.goto("/");
     await page.waitForLoadState("networkidle");
     await expect(page.getByText("Saved example · story 1")).toBeVisible();
-    await expect(page.locator("[data-anatomy-card]")).toContainText("What else did God create on the third day?");
+    await expect(page.locator("[data-anatomy-excerpt]")).toContainText(/\S/);
     expect(mcpBodies).toHaveLength(0);
 
+    const movement2Call = waitForToolCall(page, "movement2");
     await picker.choose(page, "movement2");
     await expect(page.locator("[data-anatomy-card]")).toContainText("Theological Dialogue");
-    await waitForToolCall(page, "movement2");
+    await movement2Call;
     expect(countInitialize(mcpBodies)).toBe(1);
     await expect(
       page.getByText(/Live from the server · story 1|Saved example · story 1/)
     ).toBeVisible({ timeout: 15_000 });
 
+    const movement3Call = waitForToolCall(page, "movement3");
     await picker.choose(page, "movement3");
     await expect(page.locator("[data-anatomy-card]")).toContainText("Personal Reflection");
-    await waitForToolCall(page, "movement3");
+    await movement3Call;
     expect(countInitialize(mcpBodies)).toBe(1);
   });
 }

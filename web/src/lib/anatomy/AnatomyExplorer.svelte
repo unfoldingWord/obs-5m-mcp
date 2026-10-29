@@ -18,7 +18,7 @@
 	let selected = $state<AnatomyPart>(ANATOMY_PARTS[3]);
 	let tools = $state<ToolInfo[] | null>(null);
 	let live = $state<Record<string, string>>({});
-	let connectFailedThisVisit = $state(false);
+	let connectFailedThisVisit = false;
 	let mounted = $state(false);
 
 	/** The call as this server accepts it: include_answers only once the server has it. */
@@ -39,7 +39,6 @@
 				tools = knownTools;
 			} catch {
 				connectFailedThisVisit = true;
-				tools = null;
 				return;
 			}
 		}
@@ -157,7 +156,7 @@
 			{/each}
 		</ul>
 
-		<div class="mt-5 rounded-md bg-bg p-4">
+		<div class="mt-5 rounded-md bg-bg p-4" data-anatomy-excerpt>
 			<p class="mb-2 font-mono text-[11px] text-accent-2">
 				{isLive ? 'Live from the server · story 1' : 'Saved example · story 1'}
 			</p>
