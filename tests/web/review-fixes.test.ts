@@ -43,6 +43,29 @@ describe("rendered view of a result", () => {
     expect(view).toEqual({ kind: "json", summary: "OBS study manual 4 (en) part=movement2", json: '{\n  "a": 1\n}' });
   });
 
+  it("renders the text as markdown when the server sends the manual as text (#17)", () => {
+    const view = renderedView({
+      text: "# The Creation (OBS 1:5)\n\n### Observation Questions",
+      structured: { reference: "1:5", movements: [] },
+      isError: false,
+      exchange,
+    });
+    expect(view).toEqual({ kind: "markdown", text: "# The Creation (OBS 1:5)\n\n### Observation Questions" });
+  });
+
+  it("renders only the first block, not the note for the assistant", () => {
+    const manual = "# The Creation (OBS 1:5)\n\n### Observation Questions";
+    const note = "For the assistant (don't show this to the user):\nStory 1 · movement1 (4 of 11)";
+    const view = renderedView({
+      text: `${manual}\n\n${note}`,
+      blocks: [manual, note],
+      structured: { reference: "1:5", movements: [] },
+      isError: false,
+      exchange,
+    });
+    expect(view).toEqual({ kind: "markdown", text: manual });
+  });
+
   it("shows plain text when there is no structured data", () => {
     const view = renderedView({ text: "Error RESOURCE_NOT_FOUND: nope", structured: null, isError: true, exchange });
     expect(view).toEqual({ kind: "text", text: "Error RESOURCE_NOT_FOUND: nope" });

@@ -32,7 +32,7 @@ function excerpt(md: string): string {
 export function buildAnatomySnapshot(bundle: StoryBundle): Record<string, string> {
   const out: Record<string, string> = {};
   for (const p of ANATOMY_PARTS) {
-    // The snapshot uses one panel for Movement 1; ranges need the server from PR #18.
+    // Keep one panel for Movement 1 in the snapshot fallback, even though the live call uses a range.
     const reference = p.part === "movement1" ? "1:5" : p.call.reference;
     const ref = parseObsTfReference(reference)!;
     const payload = buildStudyManualPayload(bundle, { ref, part: p.part });
