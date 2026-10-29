@@ -18,16 +18,11 @@
 	let selected = $state<AnatomyPart>(ANATOMY_PARTS[3]);
 	let tools = $state<ToolInfo[] | null>(null);
 	let live = $state<Record<string, string>>({});
+	let connectFailedThisVisit = $state(false);
 	let mounted = $state(false);
 
-	const supportsAnswers = $derived(
-		tools ? hasParam(tools, 'fetch_obs_study_manual', 'include_answers') : false
-	);
 	/** The call as this server accepts it: include_answers only once the server has it. */
-	const shownCall = $derived.by(() => {
-		const { include_answers, ...rest } = selected.call;
-		return supportsAnswers && include_answers === false ? selected.call : rest;
-	});
+	const shownCall = $derived.by(() => shownCallFor(selected));
 	const callText = $derived(`fetch_obs_study_manual ${JSON.stringify(shownCall)}`);
 	const tryHref = $derived(
 		'/try' + encodeTryState({ tab: 'tools', tool: 'fetch_obs_study_manual', args: shownCall })
@@ -36,13 +31,14 @@
 	const isLive = $derived(selected.part in live);
 
 	async function load(p: AnatomyPart) {
-		if (live[p.part]) return;
+		if (live[p.part] || connectFailedThisVisit) return;
 		let knownTools = tools;
 		if (!knownTools) {
 			try {
 				knownTools = await connect(endpoint());
 				tools = knownTools;
 			} catch {
+				connectFailedThisVisit = true;
 				tools = null;
 				return;
 			}
@@ -52,7 +48,7 @@
 		// A questions-only example needs a server that can leave answers out.
 		if (p.call.include_answers === false && !supportsAnswersForPart) return;
 		const { result, outcome } = await run(endpoint(), 'fetch_obs_study_manual', {
-			...shownCallFor(p, supportsAnswersForPart),
+			...shownCallFor(p, knownTools),
 			language: 'en',
 			format: 'md'
 		});
@@ -62,7 +58,10 @@
 		}
 	}
 
-	function shownCallFor(p: AnatomyPart, includeAnswersSupported = supportsAnswers) {
+	function shownCallFor(p: AnatomyPart, knownTools: ToolInfo[] | null = tools) {
+		const includeAnswersSupported = knownTools
+			? hasParam(knownTools, 'fetch_obs_study_manual', 'include_answers')
+			: false;
 		const { include_answers, ...rest } = p.call;
 		return includeAnswersSupported && include_answers === false ? p.call : rest;
 	}
