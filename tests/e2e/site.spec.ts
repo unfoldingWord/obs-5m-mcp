@@ -6,6 +6,112 @@ test("home explains what the server serves", async ({ page }) => {
   await expect(page.locator('a[href="https://formationstories.org/"]').first()).toBeVisible();
 });
 
+type AnatomyPicker = {
+  name: string;
+  setup: (page: import("@playwright/test").Page) => Promise<void>;
+  choose: (page: import("@playwright/test").Page, part: string) => Promise<void>;
+};
+
+const anatomyPickers: AnatomyPicker[] = [
+  {
+    name: "phone select",
+    setup: async (page) => {
+      await page.setViewportSize({ width: 390, height: 844 });
+    },
+    choose: async (page, part) => {
+      await page.locator("#a-part").selectOption(part);
+    },
+  },
+  {
+    name: "desktop click",
+    setup: async (page) => {
+      await page.setViewportSize({ width: 1280, height: 900 });
+    },
+    choose: async (page, part) => {
+      const labels: Record<string, string> = {
+        movement2: "Theological Dialogue",
+        movement3: "Personal Reflection",
+        movement4: "Ministry Practice",
+      };
+      await page.getByRole("button", { name: labels[part] }).click();
+    },
+  },
+];
+
+function countInitialize(mcpBodies: string[]): number {
+  return mcpBodies.filter((body) => body.includes('"initialize"')).length;
+}
+
+async function waitForToolCall(page: import("@playwright/test").Page, part: string): Promise<void> {
+  await page.waitForRequest(
+    (req) =>
+      req.url().endsWith("/mcp") &&
+      (req.postData() ?? "").includes('"method":"tools/call"') &&
+      (req.postData() ?? "").includes(`"part":"${part}"`),
+    { timeout: 20_000 }
+  );
+}
+
+for (const picker of anatomyPickers) {
+  test(`home anatomy stays offline until a part is chosen, then reuses one session (${picker.name})`, async ({ page }) => {
+    const mcpBodies: string[] = [];
+    page.on("request", (r) => {
+      if (r.url().endsWith("/mcp")) mcpBodies.push(r.postData() ?? "");
+    });
+
+    await picker.setup(page);
+    await page.goto("/");
+    await page.waitForLoadState("networkidle");
+    await expect(page.getByText("Saved example · story 1")).toBeVisible();
+    await expect(page.locator("[data-anatomy-excerpt]")).toContainText(/\S/);
+    expect(mcpBodies).toHaveLength(0);
+
+    const movement2Call = waitForToolCall(page, "movement2");
+    await picker.choose(page, "movement2");
+    await expect(page.locator("[data-anatomy-card]")).toContainText("Theological Dialogue");
+    await movement2Call;
+    expect(countInitialize(mcpBodies)).toBe(1);
+    await expect(
+      page.getByText(/Live from the server · story 1|Saved example · story 1/)
+    ).toBeVisible({ timeout: 15_000 });
+
+    const movement3Call = waitForToolCall(page, "movement3");
+    await picker.choose(page, "movement3");
+    await expect(page.locator("[data-anatomy-card]")).toContainText("Personal Reflection");
+    await movement3Call;
+    expect(countInitialize(mcpBodies)).toBe(1);
+  });
+}
+
+test("home anatomy does not retry connection after a failed first connect", async ({ page }) => {
+  const mcpBodies: string[] = [];
+  page.on("request", (r) => {
+    if (r.url().endsWith("/mcp")) mcpBodies.push(r.postData() ?? "");
+  });
+  await page.route("**/mcp", async (route) => {
+    await route.fulfill({
+      status: 503,
+      contentType: "application/json",
+      body: JSON.stringify({ jsonrpc: "2.0", error: { code: -32000, message: "server unavailable" } }),
+    });
+  });
+
+  await page.setViewportSize({ width: 390, height: 844 });
+  await page.goto("/");
+  await page.waitForLoadState("networkidle");
+  expect(mcpBodies).toHaveLength(0);
+
+  await page.locator("#a-part").selectOption("movement2");
+  await expect(page.locator("[data-anatomy-card]")).toContainText("Theological Dialogue");
+  await expect.poll(() => countInitialize(mcpBodies)).toBe(1);
+
+  await page.locator("#a-part").selectOption("movement3");
+  await expect(page.locator("[data-anatomy-card]")).toContainText("Personal Reflection");
+  await page.waitForTimeout(800);
+  expect(countInitialize(mcpBodies)).toBe(1);
+  await expect(page.getByText("Saved example · story 1")).toBeVisible();
+});
+
 test("the try page calls this site's own server", async ({ page }) => {
   const calls: string[] = [];
   page.on("request", (r) => {
