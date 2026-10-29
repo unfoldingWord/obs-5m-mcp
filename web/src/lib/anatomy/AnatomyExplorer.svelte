@@ -21,7 +21,7 @@
 	let connectFailedThisVisit = false;
 	let mounted = $state(false);
 
-	/** The call as this server accepts it: include_answers only once the server has it. */
+	/** The call to show and share: keep include_answers until a connected server rejects it. */
 	const shownCall = $derived.by(() => shownCallFor(selected));
 	const callText = $derived(`fetch_obs_study_manual ${JSON.stringify(shownCall)}`);
 	const tryHref = $derived(
@@ -60,7 +60,7 @@
 	function shownCallFor(p: AnatomyPart, knownTools: ToolInfo[] | null = tools) {
 		const includeAnswersSupported = knownTools
 			? hasParam(knownTools, 'fetch_obs_study_manual', 'include_answers')
-			: false;
+			: true;
 		const { include_answers, ...rest } = p.call;
 		return includeAnswersSupported && include_answers === false ? p.call : rest;
 	}

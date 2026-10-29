@@ -29,6 +29,7 @@ const anatomyPickers: AnatomyPicker[] = [
     },
     choose: async (page, part) => {
       const labels: Record<string, string> = {
+        movement1: "Biblical Interpretation",
         movement2: "Theological Dialogue",
         movement3: "Personal Reflection",
         movement4: "Ministry Practice",
@@ -71,9 +72,7 @@ for (const picker of anatomyPickers) {
     await expect(page.locator("[data-anatomy-card]")).toContainText("Theological Dialogue");
     await movement2Call;
     expect(countInitialize(mcpBodies)).toBe(1);
-    await expect(
-      page.getByText(/Live from the server · story 1|Saved example · story 1/)
-    ).toBeVisible({ timeout: 15_000 });
+    await expect(page.getByText("Live from the server · story 1")).toBeVisible({ timeout: 15_000 });
 
     const movement3Call = waitForToolCall(page, "movement3");
     await picker.choose(page, "movement3");
@@ -82,6 +81,29 @@ for (const picker of anatomyPickers) {
     expect(countInitialize(mcpBodies)).toBe(1);
   });
 }
+
+test("home anatomy movement1 keeps include_answers in the shown call and first request", async ({ page }) => {
+  await page.setViewportSize({ width: 1280, height: 900 });
+  await page.goto("/");
+  await page.waitForLoadState("networkidle");
+  await expect(page.locator("[data-anatomy-card]")).toContainText(
+    'fetch_obs_study_manual {"reference":"1:5-8","part":"movement1","include_answers":false}'
+  );
+
+  const movement1Call = page.waitForRequest(
+    (req) =>
+      req.url().endsWith("/mcp") &&
+      (req.postData() ?? "").includes('"method":"tools/call"') &&
+      (req.postData() ?? "").includes('"part":"movement1"') &&
+      (req.postData() ?? "").includes('"reference":"1:5-8"') &&
+      (req.postData() ?? "").includes('"include_answers":false'),
+    { timeout: 20_000 }
+  );
+  await page.getByRole("button", { name: "Biblical Interpretation" }).click();
+  await movement1Call;
+  await expect(page.getByText("Live from the server · story 1")).toBeVisible({ timeout: 15_000 });
+  await expect(page.locator("[data-anatomy-excerpt]")).not.toContainText("**A:**");
+});
 
 test("home anatomy does not retry connection after a failed first connect", async ({ page }) => {
   const mcpBodies: string[] = [];
