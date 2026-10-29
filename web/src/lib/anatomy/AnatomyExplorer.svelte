@@ -21,7 +21,7 @@
 	let connectFailedThisVisit = false;
 	let mounted = $state(false);
 
-	/** The call to show and share: keep include_answers until a connected server rejects it. */
+	/** The call to show and share: keep include_answers until the connected server's schema lacks it. */
 	const shownCall = $derived.by(() => shownCallFor(selected));
 	const callText = $derived(`fetch_obs_study_manual ${JSON.stringify(shownCall)}`);
 	const tryHref = $derived(

@@ -20,7 +20,7 @@ ${OBS_FORMATION_CONTEXT}
   - \`include_answers\`: false leaves out the answers to the Observation and Discourse Questions; nothing else changes
   - \`section\`: observation | translation — one Movement 1 list, without the story around it. \`section: "observation"\` with \`include_answers: false\` is the questions to hand to a team
   - \`format\`: json (default) | md | text. With json, the text content is the slice as markdown (relay it as written); the data is in structuredContent
-  - Response includes \`sections\` (where each section sits in the payload), \`sessionFlow\`, \`drafting\`, \`checking\`, \`conclusion\`
+  - In \`format: "json"\`, \`sessionFlow\`, \`sections\`, \`drafting\`, \`checking\`, \`conclusion\`, and \`source\` are in \`structuredContent\`
 
 ## Translator session workflow
 1. list_languages / list_resources — what exists for the language

@@ -37,7 +37,7 @@ const PART_DESCRIPTION =
   "full (default) | intro | frames | community | movement1–movement5 | " +
   "drafting | checking | conclusion. " +
   "Content is always resolved (shared TX and story-unique inline look the same). " +
-  "Prefer part over inventing your own section order; see sessionFlow in the response.";
+  "Prefer part over inventing your own section order; see sessionFlow in structuredContent.";
 
 const inputSchema = z.object({
   reference: z.string().min(1).describe(REFERENCE_DESCRIPTION),

@@ -43,6 +43,13 @@ function countInitialize(mcpBodies: string[]): number {
   return mcpBodies.filter((body) => body.includes('"initialize"')).length;
 }
 
+function decodeTryStateHash(href: string): Record<string, unknown> {
+  const hash = href.split("#")[1] ?? "";
+  const b64 = hash.replace(/-/g, "+").replace(/_/g, "/");
+  const padded = b64 + "=".repeat((4 - (b64.length % 4)) % 4);
+  return JSON.parse(Buffer.from(padded, "base64").toString("utf8")) as Record<string, unknown>;
+}
+
 async function waitForToolCall(page: import("@playwright/test").Page, part: string): Promise<void> {
   await page.waitForRequest(
     (req) =>
@@ -83,12 +90,25 @@ for (const picker of anatomyPickers) {
 }
 
 test("home anatomy movement1 keeps include_answers in the shown call and first request", async ({ page }) => {
+  const mcpBodies: string[] = [];
+  page.on("request", (r) => {
+    if (r.url().endsWith("/mcp")) mcpBodies.push(r.postData() ?? "");
+  });
   await page.setViewportSize({ width: 1280, height: 900 });
   await page.goto("/");
   await page.waitForLoadState("networkidle");
+  expect(mcpBodies).toHaveLength(0);
   await expect(page.locator("[data-anatomy-card]")).toContainText(
     'fetch_obs_study_manual {"reference":"1:5-8","part":"movement1","include_answers":false}'
   );
+  const state = decodeTryStateHash(
+    (await page.getByRole("link", { name: "Run this call" }).getAttribute("href")) ?? ""
+  );
+  expect(state).toMatchObject({
+    tab: "tools",
+    tool: "fetch_obs_study_manual",
+    args: { reference: "1:5-8", part: "movement1", include_answers: false },
+  });
 
   const movement1Call = page.waitForRequest(
     (req) =>
@@ -101,8 +121,11 @@ test("home anatomy movement1 keeps include_answers in the shown call and first r
   );
   await page.getByRole("button", { name: "Biblical Interpretation" }).click();
   await movement1Call;
+  expect(countInitialize(mcpBodies)).toBe(1);
   await expect(page.getByText("Live from the server · story 1")).toBeVisible({ timeout: 15_000 });
-  await expect(page.locator("[data-anatomy-excerpt]")).not.toContainText("**A:**");
+  const excerptStrong = page.locator("[data-anatomy-excerpt] strong");
+  await expect(excerptStrong.filter({ hasText: /^A:$/ })).toHaveCount(0);
+  expect(await excerptStrong.filter({ hasText: /^Q:$/ }).count()).toBeGreaterThan(0);
 });
 
 test("home anatomy does not retry connection after a failed first connect", async ({ page }) => {
