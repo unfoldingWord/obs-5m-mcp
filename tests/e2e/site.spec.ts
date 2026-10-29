@@ -6,6 +6,34 @@ test("home explains what the server serves", async ({ page }) => {
   await expect(page.locator('a[href="https://formationstories.org/"]').first()).toBeVisible();
 });
 
+test("home anatomy stays offline until a part is chosen, then reuses one session", async ({ page }) => {
+  const mcpBodies: string[] = [];
+  page.on("request", (r) => {
+    if (r.url().endsWith("/mcp")) mcpBodies.push(r.postData() ?? "");
+  });
+
+  await page.setViewportSize({ width: 390, height: 844 });
+  await page.goto("/");
+  await page.waitForLoadState("networkidle");
+  await expect(page.getByText("Saved example · story 1")).toBeVisible();
+  await expect(page.locator("[data-anatomy-card]")).toContainText("What else did God create on the third day?");
+  expect(mcpBodies).toHaveLength(0);
+
+  await page.locator("#a-part").selectOption("movement2");
+  await expect(page.locator("[data-anatomy-card]")).toContainText("Theological Dialogue");
+  await expect.poll(() => mcpBodies.length).toBeGreaterThan(0);
+  await expect(
+    page.getByText(/Live from the server · story 1|Saved example · story 1/)
+  ).toBeVisible({ timeout: 15_000 });
+
+  const initializeCalls = () => mcpBodies.filter((body) => body.includes('"initialize"')).length;
+  const beforeThirdPick = initializeCalls();
+
+  await page.locator("#a-part").selectOption("movement3");
+  await expect(page.locator("[data-anatomy-card]")).toContainText("Personal Reflection");
+  await expect.poll(initializeCalls).toBe(beforeThirdPick);
+});
+
 test("the try page calls this site's own server", async ({ page }) => {
   const calls: string[] = [];
   page.on("request", (r) => {

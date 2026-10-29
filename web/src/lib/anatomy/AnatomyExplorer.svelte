@@ -36,11 +36,23 @@
 	const isLive = $derived(selected.part in live);
 
 	async function load(p: AnatomyPart) {
-		if (live[p.part] || !tools) return;
+		if (live[p.part]) return;
+		let knownTools = tools;
+		if (!knownTools) {
+			try {
+				knownTools = await connect(endpoint());
+				tools = knownTools;
+			} catch {
+				tools = null;
+				return;
+			}
+		}
+
+		const supportsAnswersForPart = hasParam(knownTools, 'fetch_obs_study_manual', 'include_answers');
 		// A questions-only example needs a server that can leave answers out.
-		if (p.call.include_answers === false && !supportsAnswers) return;
+		if (p.call.include_answers === false && !supportsAnswersForPart) return;
 		const { result, outcome } = await run(endpoint(), 'fetch_obs_study_manual', {
-			...shownCallFor(p),
+			...shownCallFor(p, supportsAnswersForPart),
 			language: 'en',
 			format: 'md'
 		});
@@ -50,9 +62,9 @@
 		}
 	}
 
-	function shownCallFor(p: AnatomyPart) {
+	function shownCallFor(p: AnatomyPart, includeAnswersSupported = supportsAnswers) {
 		const { include_answers, ...rest } = p.call;
-		return supportsAnswers && include_answers === false ? p.call : rest;
+		return includeAnswersSupported && include_answers === false ? p.call : rest;
 	}
 
 	function trim(md: string): string {
@@ -74,14 +86,8 @@
 		revealOnNarrow(card);
 	}
 
-	onMount(async () => {
+	onMount(() => {
 		mounted = true;
-		try {
-			tools = await connect(endpoint());
-			void load(selected);
-		} catch {
-			tools = null;
-		}
 	});
 </script>
 
