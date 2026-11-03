@@ -3,6 +3,7 @@
 	const forms = [
 		['"1"', 'The whole of story 1.'],
 		['"1:5"', 'Story 1, panel 5: the story text and the per-panel questions for that panel only.'],
+		['"1:5-8"', 'Story 1, panels 5 to 8.'],
 		['"1:0"', 'Story 1, the introduction.'],
 		['"obs 1:5"', 'The same as "1:5". The "obs" prefix is optional.'],
 		['"01:05"', 'Leading zeros are fine.']
@@ -29,13 +30,14 @@
 
 <h2>What a panel narrows</h2>
 <p>
-	With a panel, the observation and translation questions keep only that panel, and discourse
-	questions keep the ones that mention it. Parts without per-panel content, such as Movements 4 and
-	5, come back whole.
+	With a panel or a range, the story panels, the observation and translation questions keep only those
+	panels, and discourse questions keep the ones that mention them. Parts without per-panel content,
+	such as Movements 4 and 5, come back whole.
 </p>
 
 <h2>What is rejected</h2>
 <p>
-	Story numbers outside 1 to 50, Bible references such as <code>GEN 1:1</code>, and
+	Story numbers outside 1 to 50, ranges that run backwards such as <code>1:8-5</code>, Bible
+	references such as <code>GEN 1:1</code>, and
 	<code>front</code> are invalid and return an error that says which forms work.
 </p>

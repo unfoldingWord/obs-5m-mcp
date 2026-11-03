@@ -1,23 +1,31 @@
 <script lang="ts">
-	// Source: unfoldingWord/obs-5m-mcp#18 (include_answers, section, panel ranges).
+	// Source: src/mcp/tools/fetchObsStudyManual.ts, src/content/studyManual.ts (HAS_ANSWERS, toClientMovement).
 </script>
 
-<h1>Questions only</h1>
+<h1>Without answers</h1>
 <p>
-	The manual gives answers to its observation and discourse questions. They are for the leaders who
-	guide the group. The community works through the questions themselves.
+	The manual is written for the whole group. Only two kinds of questions come with answers: the
+	Observation Questions in Movement 1 and the Discourse Questions in Movement 2. The answers help
+	whoever guides the session check what the group found. The group works through the questions
+	themselves.
 </p>
-<p>
-	Available once
-	<a href="https://github.com/unfoldingWord/obs-5m-mcp/pull/18">unfoldingWord/obs-5m-mcp#18</a> is
-	released:
-</p>
+<p>Two arguments of <code>fetch_obs_study_manual</code> shape what a group receives:</p>
 <ul class="list">
-	<li><code>include_answers: false</code> returns the questions without the answers, grouped by panel.</li>
-	<li><code>section: "observation"</code> or <code>"translation"</code> returns one Movement 1 list.</li>
-	<li>Panel ranges such as <code>"1:5-8"</code> return panels 5 to 8.</li>
+	<li>
+		<code>include_answers: false</code> leaves out those answers and nothing else. The story, the
+		Translation Questions, the theological and reflection questions, and every other part come back as
+		usual.
+	</li>
+	<li>
+		<code>section: "observation"</code> or <code>"translation"</code> returns one Movement 1 list on its
+		own, without the story around it. It implies <code>part: "movement1"</code>.
+	</li>
+	<li>
+		Together, with a panel range such as <code>"1:5-8"</code>, they give the observation questions to
+		hand a group a few panels at a time.
+	</li>
 </ul>
 <p>
-	On the <a href="/try">try page</a>, the guided session shows a Leader view (with answers) and a
-	Community view (questions only) as soon as the server supports it.
+	On the <a href="/try">try page</a>, the guided session has a Leader view (with answers) and a
+	Community view (without them). They differ only in Movements 1 and 2.
 </p>

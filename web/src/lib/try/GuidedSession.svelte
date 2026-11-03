@@ -44,6 +44,9 @@
 		conclusion: 'Conclusion'
 	};
 
+	// Only these parts carry the manual's answers (observation and discourse questions).
+	const ANSWER_PARTS = ['movement1', 'movement2'];
+
 	const init = untrack(() => initial);
 	const firstStep = untrack(() => Math.max(0, flow.indexOf(init.part ?? 'intro')));
 	let languages = $state<{ code: string; name: string }[]>([]);
@@ -183,8 +186,11 @@
 				<p class="mt-1 text-xs text-ink-2">
 					{view === 'leader'
 						? 'With the manual’s answers, to prepare and guide.'
-						: 'Questions only, what the group works through.'}
+						: 'Without the answers to the observation and discourse questions, for the group.'}
 				</p>
+				{#if !ANSWER_PARTS.includes(part)}
+					<p class="mt-1 text-xs text-ink-2">This part has no answers, so both views are the same.</p>
+				{/if}
 			</fieldset>
 		{/if}
 		<div class="lg:hidden">

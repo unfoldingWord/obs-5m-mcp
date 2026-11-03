@@ -1,5 +1,9 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { z } from "zod";
+import {
+  formatStudyManualMd,
+  type StudyManualPayload,
+} from "../../src/content/studyManual.js";
 import { fetchObsStudyManualTool } from "../../src/mcp/tools/fetchObsStudyManual.js";
 import { getFrameworkTool } from "../../src/mcp/tools/getFramework.js";
 import { getPdfTool } from "../../src/mcp/tools/getPdf.js";
@@ -41,6 +45,170 @@ describe("tool handlers (mocked DCS)", () => {
     expect((sc.movements as unknown[]).length).toBe(5);
   });
 
+  it("fetch_obs_study_manual json text is the markdown, not a JSON copy (#17)", async () => {
+    const result = await fetchObsStudyManualTool.handler(
+      { reference: "1", language: "en", part: "movement1", format: "json" },
+      emptyEnv(),
+      "test-17-size",
+    );
+    expect(result.content).toHaveLength(2);
+    const text = result.content[0].text;
+    expect(text).toMatch(/^# The Creation \(OBS 1\)/);
+    expect(text).toMatch(/#### 01-01/);
+    expect(text).toBe(
+      formatStudyManualMd(result.structuredContent as unknown as StudyManualPayload),
+    );
+    const total =
+      JSON.stringify(result.content).length +
+      JSON.stringify(result.structuredContent).length;
+    expect(total).toBeLessThan(32_768);
+  });
+
+  describe("fetch_obs_study_manual note for the assistant (second text block)", () => {
+    const call = (args: Record<string, unknown>) =>
+      fetchObsStudyManualTool.handler(
+        { language: "en", format: "json", ...args } as Parameters<
+          typeof fetchObsStudyManualTool.handler
+        >[0],
+        emptyEnv(),
+        "test-note",
+      );
+    const bytes = (s: string) => new TextEncoder().encode(s).length;
+
+    it("names the next part, the same frames, the left-out answers and the licence", async () => {
+      const result = await call({
+        reference: "1:5-8",
+        part: "movement1",
+        include_answers: false,
+      });
+      expect(result.content).toHaveLength(2);
+      const note = result.content[1].text;
+      expect(bytes(note)).toBeLessThanOrEqual(600);
+      expect(note).toMatch(/^For the assistant \(don't show this to the user\):/);
+      expect(note).toContain("movement1 (4 of 11)");
+      expect(note).toContain(
+        'Next: movement2 → fetch_obs_study_manual {"reference":"1:5-8","part":"movement2","language":"en","include_answers":false}',
+      );
+      expect(note).toMatch(/answers .*left out/i);
+      expect(note).toContain("CC BY-SA 4.0");
+      expect(note).toContain("https://git.door43.org/");
+      expect(result.content[0].text).not.toContain("For the assistant");
+    });
+
+    it("story-level movement1 points to movement2 for the whole story", async () => {
+      const result = await call({ reference: "1", part: "movement1" });
+      const note = result.content[1].text;
+      expect(note).toContain(
+        'Next: movement2 → fetch_obs_study_manual {"reference":"1","part":"movement2","language":"en"}',
+      );
+      expect(note).not.toMatch(/left out/i);
+    });
+
+    it("says the last part has no next part", async () => {
+      const result = await call({ reference: "1", part: "conclusion" });
+      const note = result.content[1].text;
+      expect(note).toContain("conclusion (11 of 11)");
+      expect(note).toMatch(/last part/i);
+      expect(note).not.toContain("Next: ");
+    });
+
+    it("says a full-story result already has every part", async () => {
+      const result = await call({ reference: "1" });
+      const note = result.content[1].text;
+      expect(note).toMatch(/every part/i);
+      expect(note).not.toContain("Next: ");
+    });
+
+    it("keeps md/text blocks as they were, with the note second and the JSON last", async () => {
+      for (const format of ["md", "text"] as const) {
+        const result = await call({ reference: "1", part: "movement1", format });
+        expect(result.content).toHaveLength(3);
+        const sc = result.structuredContent as { content: string };
+        expect(result.content[0].text).toBe(sc.content.slice(0, 2000));
+        expect(result.content[1].text).toMatch(/^For the assistant/);
+        expect(result.content[1].text).toContain(`"format":"${format}"`);
+        expect(JSON.parse(result.content[2].text)).toEqual(result.structuredContent);
+      }
+    });
+
+    it("leaves structuredContent without the note", async () => {
+      const result = await call({ reference: "1:5-8", part: "movement1" });
+      expect(JSON.stringify(result.structuredContent)).not.toContain("For the assistant");
+    });
+
+    it("uses the converted-markdown wording without a DCS entry, under 600 bytes", async () => {
+      const result = await call({
+        reference: "2:1-12",
+        language: "id",
+        part: "movement2",
+        include_answers: false,
+        format: "text",
+      });
+      const note = result.content[1].text;
+      expect(bytes(note)).toBeLessThanOrEqual(600);
+      expect(note).toMatch(/converted markdown/i);
+      expect(note).toContain("CC BY-SA 4.0");
+      expect(note).not.toContain("door43.org");
+      expect(note).toContain('"language":"id"');
+    });
+  });
+
+  it("fetch_obs_study_manual without answers keeps the rest of the part (#17)", async () => {
+    const result = await fetchObsStudyManualTool.handler(
+      {
+        reference: "1:5-8",
+        language: "en",
+        part: "movement1",
+        include_answers: false,
+        format: "json",
+      },
+      emptyEnv(),
+      "test-17-no-answers",
+    );
+    const text = result.content[0].text;
+    expect(text).not.toMatch(/\*\*A:\*\*/);
+    expect(text).toMatch(/Observation Questions/);
+    expect(text).toMatch(/Translation Questions/);
+  });
+
+  it("fetch_obs_study_manual observation list without answers is small (#17)", async () => {
+    const result = await fetchObsStudyManualTool.handler(
+      {
+        reference: "1:5-8",
+        language: "en",
+        section: "observation",
+        include_answers: false,
+        format: "json",
+      },
+      emptyEnv(),
+      "test-17-questions",
+    );
+    const text = result.content[0].text;
+    expect(text.match(/^#### /gm)).toHaveLength(4);
+    expect(text).not.toMatch(/\*\*A:\*\*/);
+    expect(text).not.toMatch(/Translation Questions/);
+    expect(
+      JSON.stringify(result.content).length +
+        JSON.stringify(result.structuredContent).length,
+    ).toBeLessThan(8_000);
+  });
+
+  it("fetch_obs_study_manual rejects section outside Movement 1", async () => {
+    await expect(
+      fetchObsStudyManualTool.handler(
+        {
+          reference: "1",
+          language: "en",
+          part: "movement2",
+          section: "observation",
+          format: "json",
+        },
+        emptyEnv(),
+        "test-17-section",
+      ),
+    ).rejects.toThrow(/Movement 1 list/);
+  });
+
   it("fetch_obs_study_manual md format is non-empty", async () => {
     const result = await fetchObsStudyManualTool.handler(
       { reference: "1", language: "en", format: "md" },
@@ -61,12 +229,12 @@ describe("tool handlers (mocked DCS)", () => {
       "test-3",
     );
     const sc = result.structuredContent as {
-      movements: Array<{ id: number; markdown: string }>;
+      movements: Array<{ id: number; markdown?: string }>;
       communityStudy: string | null;
     };
     expect(sc.movements).toHaveLength(1);
     expect(sc.movements[0].id).toBe(4);
-    expect(sc.movements[0].markdown.length).toBeGreaterThan(20);
+    expect(sc.movements[0].markdown?.length).toBeGreaterThan(20);
     expect(sc.communityStudy).toBeNull();
   });
 

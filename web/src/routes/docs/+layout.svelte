@@ -10,7 +10,7 @@
 			items: [
 				['/docs/sessions', 'Sessions and parts'],
 				['/docs/references', 'Stories and panels'],
-				['/docs/questions-only', 'Questions only']
+				['/docs/questions-only', 'Without answers']
 			]
 		},
 		{

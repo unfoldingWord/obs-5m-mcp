@@ -82,6 +82,14 @@ export function ok(
   data: unknown,
   humanText?: string,
   meta?: ToolResult["meta"],
+  opts?: {
+    /**
+     * When false, the text content is only `humanText` and the data travels
+     * in structuredContent alone. Use it when `humanText` already is the full
+     * content, so clients that read only text do not get it twice.
+     */
+    jsonText?: boolean;
+  },
 ): ToolResult {
   const structured = {
     ...(data as Record<string, unknown>),
@@ -89,7 +97,9 @@ export function ok(
   };
   const content: Array<{ type: "text"; text: string }> = [];
   if (humanText) content.push({ type: "text", text: humanText });
-  content.push({ type: "text", text: JSON.stringify(structured) });
+  if (opts?.jsonText !== false || !humanText) {
+    content.push({ type: "text", text: JSON.stringify(structured) });
+  }
   const json = JSON.stringify(structured);
   return {
     content,

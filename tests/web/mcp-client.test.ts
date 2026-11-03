@@ -53,7 +53,10 @@ describe("McpHttpClient", () => {
     const { fetchImpl } = fakeServer((b) => {
       if (b.method === "tools/call") {
         bodyText = rpc(b.id, {
-          content: [{ type: "text", text: "# Story" }],
+          content: [
+            { type: "text", text: "# Story" },
+            { type: "text", text: "For the assistant" },
+          ],
           structuredContent: { reference: "1" },
           isError: false,
         });
@@ -65,7 +68,8 @@ describe("McpHttpClient", () => {
     const before = client.log.length;
     const result = await client.callTool("fetch_obs_study_manual", { reference: "1" });
     expect(client.log.length).toBe(before + 1);
-    expect(result.text).toBe("# Story");
+    expect(result.text).toBe("# Story\n\nFor the assistant");
+    expect(result.blocks).toEqual(["# Story", "For the assistant"]);
     expect(result.structured).toEqual({ reference: "1" });
     expect(result.isError).toBe(false);
     expect(result.exchange.bytes).toBe(new TextEncoder().encode(bodyText).length);
