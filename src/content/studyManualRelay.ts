@@ -39,6 +39,15 @@ export function isTrustedObservation(items: ObsItem[]): boolean {
   });
 }
 
+export interface StudyManualRelayOptions {
+  /**
+   * Parsed movements that still carry answers (before include_answers stripping).
+   * Trust and observation block text come from here when set; the client payload
+   * may have answers removed and must not be used for the trust decision.
+   */
+  trustMovements?: StudyManualPayload["movements"];
+}
+
 /**
  * Observation and frame-text blocks for the worker relay path.
  * Order: story order; for the same frame, text before observation.
@@ -46,12 +55,16 @@ export function isTrustedObservation(items: ObsItem[]): boolean {
  */
 export function buildStudyManualRelayBlocks(
   payload: StudyManualPayload,
+  options?: StudyManualRelayOptions,
 ): RelayBlock[] {
   const language = payload.language;
   const wantText = payload.part === "full" || payload.part === "frames";
 
+  // Prefer the answer-bearing source so include_answers:false still relays.
+  const observationMovements = options?.trustMovements ?? payload.movements;
+
   const obsByFrame = new Map<string, ObsItem[]>();
-  for (const m of payload.movements) {
+  for (const m of observationMovements) {
     if (m.id !== 1 || !m.observation) continue;
     for (const block of m.observation) {
       if (block.items.length === 0) continue;

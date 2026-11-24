@@ -152,16 +152,24 @@ export const fetchObsStudyManualTool: ToolModule<typeof inputSchema> = {
 
     try {
       const bundle = await loadStoryBundle(params.language, ref.story, env);
-      const payload = buildStudyManualPayload(bundle, {
+      const payloadOpts = {
         ref,
         movement: params.movement,
         part: params.part,
         includeAnswers: params.include_answers,
         section: params.section,
-      });
+      };
+      const payload = buildStudyManualPayload(bundle, payloadOpts);
       const rendered = renderStudyManual(payload, params.format);
       const note = formatStudyManualAssistantNote(payload, params.format);
-      const relay = buildStudyManualRelayBlocks(payload);
+      // Trust needs answers even when the client asked to omit them.
+      const trustMovements = payload.includeAnswers
+        ? undefined
+        : buildStudyManualPayload(bundle, {
+            ...payloadOpts,
+            includeAnswers: true,
+          }).movements;
+      const relay = buildStudyManualRelayBlocks(payload, { trustMovements });
 
       if (params.format === "json") {
         // Text content is the slice as markdown, ready to relay as written;

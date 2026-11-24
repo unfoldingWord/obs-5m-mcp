@@ -318,4 +318,81 @@ describe("buildStudyManualRelayBlocks", () => {
     const blocks = buildStudyManualRelayBlocks(payload);
     expect(blocks.map((b) => b.id)).toEqual(["obs-en-01-05-observation"]);
   });
+
+  it("trusts from source movements when the payload stripped answers", () => {
+    const trusted = syntheticPayload({ includeAnswers: true });
+    const stripped = syntheticPayload({
+      includeAnswers: false,
+      movements: [
+        {
+          id: 1,
+          title: "Biblical Interpretation",
+          observation: [
+            {
+              frameId: "01-05",
+              items: [
+                { question: "¿Qué creó Dios el tercer día?" },
+                { question: 'He said, "Let the earth produce…"?' },
+              ],
+            },
+          ],
+        },
+      ],
+    });
+    // Without a trust source, stripped answers make the guard reject the frame.
+    expect(
+      buildStudyManualRelayBlocks(stripped).find((b) =>
+        b.id.endsWith("-observation"),
+      ),
+    ).toBeUndefined();
+
+    const withTrust = buildStudyManualRelayBlocks(stripped, {
+      trustMovements: trusted.movements,
+    });
+    const withAnswers = buildStudyManualRelayBlocks(trusted);
+    expect(withTrust.find((b) => b.id.endsWith("-observation"))).toEqual(
+      withAnswers.find((b) => b.id.endsWith("-observation")),
+    );
+    expect(withTrust.find((b) => b.id.endsWith("-observation"))!.text).not.toContain(
+      DISTINCTIVE_ANSWER,
+    );
+  });
+
+  it("include_answers-stripped multi-line fixture still yields no observation block", () => {
+    const leaky = [
+      { question: "Q1?", answer: "A1 line one" },
+      { question: "A1 line two", answer: "Q2?" },
+      { question: "A2", answer: "" },
+    ];
+    const trustedSource = syntheticPayload({
+      includeAnswers: true,
+      movements: [
+        {
+          id: 1,
+          title: "Biblical Interpretation",
+          observation: [{ frameId: "01-05", items: leaky }],
+        },
+      ],
+    });
+    const stripped = syntheticPayload({
+      includeAnswers: false,
+      movements: [
+        {
+          id: 1,
+          title: "Biblical Interpretation",
+          observation: [
+            {
+              frameId: "01-05",
+              items: leaky.map((i) => ({ question: i.question })),
+            },
+          ],
+        },
+      ],
+    });
+    const blocks = buildStudyManualRelayBlocks(stripped, {
+      trustMovements: trustedSource.movements,
+    });
+    expect(blocks.find((b) => b.id.endsWith("-observation"))).toBeUndefined();
+    expect(blocks.some((b) => b.text.includes("A1 line two"))).toBe(false);
+  });
 });

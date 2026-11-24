@@ -87,6 +87,91 @@ describe("fetch_obs_study_manual relay blocks", () => {
     expect(result.structuredContent?.available).toBe(false);
     expect(result._meta).toBeUndefined();
   });
+
+  it("include_answers:false yields the same observation blocks as true", async () => {
+    const args = {
+      reference: "1:5",
+      language: "en",
+      part: "movement1" as const,
+      format: "json" as const,
+    };
+    const withAnswers = await fetchObsStudyManualTool.handler(
+      { ...args, include_answers: true },
+      emptyEnv(),
+      "relay-ia-true",
+    );
+    const withoutAnswers = await fetchObsStudyManualTool.handler(
+      { ...args, include_answers: false },
+      emptyEnv(),
+      "relay-ia-false",
+    );
+    const trueRelay = relayOf(withAnswers);
+    const falseRelay = relayOf(withoutAnswers);
+    expect(trueRelay).toBeDefined();
+    expect(trueRelay!.some((b) => b.id.endsWith("-observation"))).toBe(true);
+    expect(falseRelay).toEqual(trueRelay);
+    for (const block of falseRelay!) {
+      expect(block.text).not.toMatch(/^[^-]/);
+      for (const line of block.text.split("\n")) {
+        if (line.startsWith("- ")) {
+          // Question-only lines; answers never appear as a block body.
+          expect(line.endsWith("?") || line.endsWith("？") || line.endsWith("؟")).toBe(
+            true,
+          );
+        }
+      }
+    }
+  });
+
+  it("include_answers:false leaves content and structuredContent unchanged", async () => {
+    const args = {
+      reference: "1:5",
+      language: "en",
+      part: "movement1" as const,
+      include_answers: false as const,
+      format: "json" as const,
+    };
+    const result = await fetchObsStudyManualTool.handler(
+      args,
+      emptyEnv(),
+      "relay-ia-sc",
+    );
+    expect(result.structuredContent?.includeAnswers).toBe(false);
+    const movements = result.structuredContent?.movements as Array<{
+      observation?: Array<{ items: Array<{ question: string; answer?: string }> }>;
+    }>;
+    const items = movements?.[0]?.observation?.flatMap((b) => b.items) ?? [];
+    expect(items.length).toBeGreaterThan(0);
+    for (const item of items) {
+      expect(item).not.toHaveProperty("answer");
+    }
+    expect(result.structuredContent).not.toHaveProperty("trusted");
+    expect(result.structuredContent).not.toHaveProperty("trust");
+    const scMeta = result.structuredContent?._meta as
+      | Record<string, unknown>
+      | undefined;
+    expect(scMeta).not.toHaveProperty("bt/relay");
+    for (const block of result.content) {
+      expect(block.text).not.toContain("bt/relay");
+    }
+  });
+
+  it("frame-filtered reference still yields only that frame's observation block", async () => {
+    const result = await fetchObsStudyManualTool.handler(
+      {
+        reference: "1:5",
+        language: "en",
+        part: "movement1",
+        include_answers: false,
+        format: "json",
+      },
+      emptyEnv(),
+      "relay-ia-frame",
+    );
+    const blocks = relayOf(result) ?? [];
+    const obs = blocks.filter((b) => b.id.endsWith("-observation"));
+    expect(obs.map((b) => b.id)).toEqual(["obs-en-01-05-observation"]);
+  });
 });
 
 describe("fetch_obs_study_manual relay over registerTools", () => {
