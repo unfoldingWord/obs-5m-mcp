@@ -17,6 +17,7 @@ import {
   STUDY_MANUAL_PARTS,
   STUDY_MANUAL_SECTIONS,
 } from "../../content/studyManual.js";
+import { buildStudyManualRelayBlocks } from "../../content/studyManualRelay.js";
 import { ErrorCode, isObs5mError, Obs5mError } from "../../core/errors.js";
 import {
   languageParam,
@@ -151,31 +152,43 @@ export const fetchObsStudyManualTool: ToolModule<typeof inputSchema> = {
 
     try {
       const bundle = await loadStoryBundle(params.language, ref.story, env);
-      const payload = buildStudyManualPayload(bundle, {
+      const payloadOpts = {
         ref,
         movement: params.movement,
         part: params.part,
         includeAnswers: params.include_answers,
         section: params.section,
-      });
+      };
+      const payload = buildStudyManualPayload(bundle, payloadOpts);
       const rendered = renderStudyManual(payload, params.format);
       const note = formatStudyManualAssistantNote(payload, params.format);
+      // Trust needs answers even when the client asked to omit them.
+      const trustMovements = payload.includeAnswers
+        ? undefined
+        : buildStudyManualPayload(bundle, {
+            ...payloadOpts,
+            includeAnswers: true,
+          }).movements;
+      const relay = buildStudyManualRelayBlocks(payload, { trustMovements });
 
       if (params.format === "json") {
         // Text content is the slice as markdown, ready to relay as written;
         // the data is in structuredContent. Sending the JSON as text too would
         // double the response for clients that read only text.
-        return withNote(
-          ok(
-            payload,
-            formatStudyManualMd(payload),
-            partnerMeta(
-              bundle.downstreamApiCalls,
-              bundle.cacheStatus === "hit" ? "hit" : "miss",
+        return withRelay(
+          withNote(
+            ok(
+              payload,
+              formatStudyManualMd(payload),
+              partnerMeta(
+                bundle.downstreamApiCalls,
+                bundle.cacheStatus === "hit" ? "hit" : "miss",
+              ),
+              { jsonText: false },
             ),
-            { jsonText: false },
+            note,
           ),
-          note,
+          relay,
         );
       }
 
@@ -202,16 +215,19 @@ export const fetchObsStudyManualTool: ToolModule<typeof inputSchema> = {
         typeof rendered.content === "string"
           ? rendered.content.slice(0, 2000)
           : undefined;
-      return withNote(
-        ok(
-          data,
-          human ?? `OBS study manual ${ref.canonical} (${rendered.format})`,
-          partnerMeta(
-            bundle.downstreamApiCalls,
-            bundle.cacheStatus === "hit" ? "hit" : "miss",
+      return withRelay(
+        withNote(
+          ok(
+            data,
+            human ?? `OBS study manual ${ref.canonical} (${rendered.format})`,
+            partnerMeta(
+              bundle.downstreamApiCalls,
+              bundle.cacheStatus === "hit" ? "hit" : "miss",
+            ),
           ),
+          note,
         ),
-        note,
+        relay,
       );
     } catch (err) {
       if (isObs5mError(err) && err.code === ErrorCode.RESOURCE_NOT_FOUND) {
@@ -225,5 +241,15 @@ export const fetchObsStudyManualTool: ToolModule<typeof inputSchema> = {
 /** The note goes second: md/text keep the JSON copy as the last block. */
 function withNote(result: ToolResult, note: string): ToolResult {
   result.content.splice(1, 0, { type: "text", text: note });
+  return result;
+}
+
+/** Top-level MCP `_meta` only — never copied into structuredContent or content. */
+function withRelay(
+  result: ToolResult,
+  blocks: ReturnType<typeof buildStudyManualRelayBlocks>,
+): ToolResult {
+  if (blocks.length === 0) return result;
+  result._meta = { ...result._meta, "bt/relay": blocks };
   return result;
 }

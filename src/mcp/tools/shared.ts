@@ -32,6 +32,11 @@ export interface ToolResult {
     cache_status: "hit" | "miss" | "partial";
     response_size_bytes?: number;
   };
+  /**
+   * MCP result `_meta` (top-level, next to `content`). Not copied into
+   * `structuredContent`. Used for partner relay blocks (`bt/relay`).
+   */
+  _meta?: Record<string, unknown>;
 }
 
 export interface ToolModule<TInput extends AnyZodSchema> {
