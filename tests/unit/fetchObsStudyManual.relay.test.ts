@@ -39,18 +39,34 @@ function expectQuestionOnlyObservationText(blocks: RelayBlock[]): void {
 /** Story 1 with a leaky multi-line answer on frame 01-05; 01-06 stays well-formed. */
 function storyWithLeakyFrame05(): string {
   const base = loadFixture("obs_story_1.md");
-  const leaky = `#### 01-05  \r
-Q1?  \r
-A1 line one  \r
-A1 line two  \r
-Q2?  \r
-A2\r
-\r
-`;
-  return base.replace(
-    /#### 01-05  \r\nWhat else did God create on the third day\?  \r\nOn the third day, God also created trees and plants\.\r\n\r\nWhat was God's response to the trees and plants he created on the third day\?  \r\nHe said they were good\.\r\n\r\n/,
-    leaky,
+  // Match the fixture's own ending (CRLF under Windows autocrlf, LF in git/CI).
+  const nl = base.includes("\r\n") ? "\r\n" : "\n";
+  const nlRe = nl === "\r\n" ? "\\r\\n" : "\\n";
+  const leaky = [
+    "#### 01-05  ",
+    "Q1?  ",
+    "A1 line one  ",
+    "A1 line two  ",
+    "Q2?  ",
+    "A2",
+    "",
+    "",
+  ].join(nl);
+  const pattern = new RegExp(
+    [
+      "#### 01-05  ",
+      "What else did God create on the third day\\?  ",
+      "On the third day, God also created trees and plants\\.",
+      "",
+      "What was God's response to the trees and plants he created on the third day\\?  ",
+      "He said they were good\\.",
+      "",
+      "",
+    ].join(nlRe),
   );
+  const replaced = base.replace(pattern, leaky);
+  expect(replaced).not.toBe(base);
+  return replaced;
 }
 
 describe("fetch_obs_study_manual relay blocks", () => {
