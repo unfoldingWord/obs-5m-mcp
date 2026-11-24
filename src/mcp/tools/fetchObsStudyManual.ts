@@ -161,7 +161,7 @@ export const fetchObsStudyManualTool: ToolModule<typeof inputSchema> = {
       });
       const rendered = renderStudyManual(payload, params.format);
       const note = formatStudyManualAssistantNote(payload, params.format);
-      const relay = buildStudyManualRelayBlocks(payload, params.language);
+      const relay = buildStudyManualRelayBlocks(payload);
 
       if (params.format === "json") {
         // Text content is the slice as markdown, ready to relay as written;

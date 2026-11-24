@@ -12,6 +12,9 @@ export interface RelayBlock {
 }
 
 const RELAY_ID = /^[A-Za-z0-9._-]{1,128}$/;
+const QUESTION_MARK = /[?？؟]$/;
+
+type ObsItem = { question: string; answer?: string };
 
 function relayId(
   language: string,
@@ -23,40 +26,60 @@ function relayId(
 }
 
 /**
+ * Trust a frame only when every item still looks like a real Q/A pair.
+ * Multi-line answers make parseFrameQaBlocks promote answer lines to
+ * `question`, so those frames must not become relay blocks.
+ */
+export function isTrustedObservation(items: ObsItem[]): boolean {
+  if (items.length === 0) return false;
+  return items.every((item) => {
+    const question = item.question.trim();
+    const answer = item.answer?.trim() ?? "";
+    return answer.length > 0 && QUESTION_MARK.test(question);
+  });
+}
+
+/**
  * Observation and frame-text blocks for the worker relay path.
  * Order: story order; for the same frame, text before observation.
  * Omit a block when its id would be invalid (e.g. a language code with spaces).
  */
 export function buildStudyManualRelayBlocks(
   payload: StudyManualPayload,
-  language: string,
 ): RelayBlock[] {
+  const language = payload.language;
   const wantText = payload.part === "full" || payload.part === "frames";
 
-  const obsByFrame = new Map<
-    string,
-    Array<{ question: string; answer?: string }>
-  >();
+  const obsByFrame = new Map<string, ObsItem[]>();
   for (const m of payload.movements) {
     if (m.id !== 1 || !m.observation) continue;
     for (const block of m.observation) {
-      if (block.items.length > 0) obsByFrame.set(block.frameId, block.items);
+      if (block.items.length === 0) continue;
+      const prev = obsByFrame.get(block.frameId);
+      obsByFrame.set(
+        block.frameId,
+        prev ? [...prev, ...block.items] : [...block.items],
+      );
     }
   }
 
   const blocks: RelayBlock[] = [];
   const seenObs = new Set<string>();
+  const seenText = new Set<string>();
 
   const pushText = (frameId: string, text: string) => {
     if (!wantText) return;
+    if (!text.trim()) return;
     const id = relayId(language, frameId, "text");
-    if (!id) return;
+    if (!id || seenText.has(id)) return;
+    seenText.add(id);
     blocks.push({ id, text });
   };
 
   const pushObs = (frameId: string) => {
     const items = obsByFrame.get(frameId);
     if (!items?.length || seenObs.has(frameId)) return;
+    if (!isTrustedObservation(items)) return;
     const id = relayId(language, frameId, "observation");
     if (!id) return;
     seenObs.add(frameId);

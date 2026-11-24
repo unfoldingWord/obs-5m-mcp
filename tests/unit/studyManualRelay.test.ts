@@ -42,7 +42,7 @@ function syntheticPayload(
                 answer: DISTINCTIVE_ANSWER,
               },
               {
-                question: 'He said, "Let the earth produce…"',
+                question: 'He said, "Let the earth produce…"?',
                 answer: `${DISTINCTIVE_ANSWER}-2`,
               },
             ],
@@ -56,7 +56,7 @@ function syntheticPayload(
 
 describe("buildStudyManualRelayBlocks", () => {
   it("omits every answer string from observation block text", () => {
-    const blocks = buildStudyManualRelayBlocks(syntheticPayload(), "en");
+    const blocks = buildStudyManualRelayBlocks(syntheticPayload());
     const obs = blocks.find((b) => b.id.endsWith("-observation"));
     expect(obs).toBeDefined();
     expect(obs!.text).not.toContain(DISTINCTIVE_ANSWER);
@@ -65,14 +65,14 @@ describe("buildStudyManualRelayBlocks", () => {
 
   it("keeps each question and frame text byte-identical, including non-ASCII", () => {
     const payload = syntheticPayload();
-    const blocks = buildStudyManualRelayBlocks(payload, "en");
+    const blocks = buildStudyManualRelayBlocks(payload);
     const text = blocks.find((b) => b.id === "obs-en-01-05-text");
     const obs = blocks.find((b) => b.id === "obs-en-01-05-observation");
     expect(text!.text).toBe(payload.frames[0].text);
     expect(obs!.text).toBe(
       [
         "- ¿Qué creó Dios el tercer día?",
-        '- He said, "Let the earth produce…"',
+        '- He said, "Let the earth produce…"?',
       ].join("\n"),
     );
   });
@@ -82,7 +82,7 @@ describe("buildStudyManualRelayBlocks", () => {
       ref: parseObsTfReference("1")!,
       part: "full",
     });
-    const blocks = buildStudyManualRelayBlocks(payload, "en");
+    const blocks = buildStudyManualRelayBlocks(payload);
     const ids = blocks.map((b) => b.id);
     expect(new Set(ids).size).toBe(ids.length);
     const obsIds = ids.filter((id) => id.endsWith("-observation"));
@@ -95,7 +95,7 @@ describe("buildStudyManualRelayBlocks", () => {
   });
 
   it("orders story order with text before observation for the same frame", () => {
-    const blocks = buildStudyManualRelayBlocks(syntheticPayload(), "en");
+    const blocks = buildStudyManualRelayBlocks(syntheticPayload());
     expect(blocks.map((b) => b.id)).toEqual([
       "obs-en-01-05-text",
       "obs-en-01-05-observation",
@@ -107,7 +107,7 @@ describe("buildStudyManualRelayBlocks", () => {
       ref: parseObsTfReference("1")!,
       part: "movement1",
     });
-    const blocks = buildStudyManualRelayBlocks(payload, "en");
+    const blocks = buildStudyManualRelayBlocks(payload);
     expect(blocks.length).toBeGreaterThan(0);
     expect(blocks.every((b) => b.id.endsWith("-observation"))).toBe(true);
   });
@@ -117,7 +117,7 @@ describe("buildStudyManualRelayBlocks", () => {
       ref: parseObsTfReference("1")!,
       part: "frames",
     });
-    const blocks = buildStudyManualRelayBlocks(payload, "en");
+    const blocks = buildStudyManualRelayBlocks(payload);
     expect(blocks).toHaveLength(16);
     expect(blocks.every((b) => b.id.endsWith("-text"))).toBe(true);
     expect(blocks[0].text).toBe(payload.frames[0].text);
@@ -128,11 +128,13 @@ describe("buildStudyManualRelayBlocks", () => {
       ref: parseObsTfReference("1")!,
       part: "intro",
     });
-    expect(buildStudyManualRelayBlocks(payload, "en")).toEqual([]);
+    expect(buildStudyManualRelayBlocks(payload)).toEqual([]);
   });
 
   it("skips a block when the language would break the id pattern", () => {
-    const blocks = buildStudyManualRelayBlocks(syntheticPayload(), "en bad");
+    const blocks = buildStudyManualRelayBlocks(
+      syntheticPayload({ language: "en bad" }),
+    );
     expect(blocks).toEqual([]);
   });
 
@@ -155,7 +157,165 @@ describe("buildStudyManualRelayBlocks", () => {
       ],
       part: "full",
     });
-    const blocks = buildStudyManualRelayBlocks(payload, "en");
+    const blocks = buildStudyManualRelayBlocks(payload);
     expect(blocks.map((b: RelayBlock) => b.id)).toEqual(["obs-en-01-03-text"]);
+  });
+
+  it("omits observation when multi-line answers would leak as questions", () => {
+    // Same pairing parseFrameQaBlocks would make from:
+    // Q1?\nA1 line one\nA1 line two\nQ2?\nA2
+    const payload = syntheticPayload({
+      movements: [
+        {
+          id: 1,
+          title: "Biblical Interpretation",
+          observation: [
+            {
+              frameId: "01-05",
+              items: [
+                { question: "Q1?", answer: "A1 line one" },
+                { question: "A1 line two", answer: "Q2?" },
+                { question: "A2", answer: "" },
+              ],
+            },
+          ],
+        },
+      ],
+    });
+    const blocks = buildStudyManualRelayBlocks(payload);
+    expect(blocks.find((b) => b.id.endsWith("-observation"))).toBeUndefined();
+    expect(blocks.map((b) => b.id)).toEqual(["obs-en-01-05-text"]);
+    expect(blocks.some((b) => b.text.includes("A1 line two"))).toBe(false);
+  });
+
+  it("omits observation when a question has no answer", () => {
+    const payload = syntheticPayload({
+      movements: [
+        {
+          id: 1,
+          title: "Biblical Interpretation",
+          observation: [
+            {
+              frameId: "01-05",
+              items: [{ question: "What did God create?", answer: "" }],
+            },
+          ],
+        },
+      ],
+    });
+    const blocks = buildStudyManualRelayBlocks(payload);
+    expect(blocks.find((b) => b.id.endsWith("-observation"))).toBeUndefined();
+  });
+
+  it("merges repeated frame headers then applies the trust guard", () => {
+    const payload = syntheticPayload({
+      movements: [
+        {
+          id: 1,
+          title: "Biblical Interpretation",
+          observation: [
+            {
+              frameId: "01-05",
+              items: [
+                {
+                  question: "¿Qué creó Dios el tercer día?",
+                  answer: DISTINCTIVE_ANSWER,
+                },
+              ],
+            },
+            {
+              frameId: "01-05",
+              items: [
+                {
+                  question: 'He said, "Let the earth produce…"?',
+                  answer: `${DISTINCTIVE_ANSWER}-2`,
+                },
+              ],
+            },
+          ],
+        },
+      ],
+    });
+    const obs = buildStudyManualRelayBlocks(payload).find((b) =>
+      b.id.endsWith("-observation"),
+    );
+    expect(obs!.text).toBe(
+      [
+        "- ¿Qué creó Dios el tercer día?",
+        '- He said, "Let the earth produce…"?',
+      ].join("\n"),
+    );
+  });
+
+  it("keeps the first text block when the same frame id repeats", () => {
+    const payload = syntheticPayload({
+      frames: [
+        {
+          id: "01-05",
+          index: 5,
+          imageRef: "a.jpeg",
+          text: "First copy of the frame text.",
+        },
+        {
+          id: "01-05",
+          index: 5,
+          imageRef: "b.jpeg",
+          text: "Second copy must not replace the first.",
+        },
+      ],
+      movements: [
+        {
+          id: 1,
+          title: "Biblical Interpretation",
+          observation: [],
+        },
+      ],
+    });
+    const textBlocks = buildStudyManualRelayBlocks(payload).filter((b) =>
+      b.id.endsWith("-text"),
+    );
+    expect(textBlocks).toHaveLength(1);
+    expect(textBlocks[0].text).toBe("First copy of the frame text.");
+  });
+
+  it("uses payload.language for ids, not a request override", () => {
+    const payload = syntheticPayload({ language: "id" });
+    const blocks = buildStudyManualRelayBlocks(payload);
+    expect(blocks.map((b) => b.id)).toEqual([
+      "obs-id-01-05-text",
+      "obs-id-01-05-observation",
+    ]);
+  });
+
+  it("skips a frame whose text is empty or only whitespace", () => {
+    const payload = syntheticPayload({
+      frames: [
+        {
+          id: "01-05",
+          index: 5,
+          imageRef: "x.jpeg",
+          text: "   \n\t  ",
+        },
+      ],
+      movements: [
+        {
+          id: 1,
+          title: "Biblical Interpretation",
+          observation: [
+            {
+              frameId: "01-05",
+              items: [
+                {
+                  question: "¿Qué creó Dios el tercer día?",
+                  answer: DISTINCTIVE_ANSWER,
+                },
+              ],
+            },
+          ],
+        },
+      ],
+    });
+    const blocks = buildStudyManualRelayBlocks(payload);
+    expect(blocks.map((b) => b.id)).toEqual(["obs-en-01-05-observation"]);
   });
 });
