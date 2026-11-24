@@ -1,4 +1,4 @@
-import { afterEach, beforeEach, describe, expect, it } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { Client } from "@modelcontextprotocol/sdk/client/index.js";
 import { InMemoryTransport } from "@modelcontextprotocol/sdk/inMemory.js";
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
@@ -6,8 +6,10 @@ import { z } from "zod";
 import type { Env } from "../../src/mcp/agent.js";
 import { registerTools } from "../../src/mcp/registerTools.js";
 import { fetchObsStudyManualTool } from "../../src/mcp/tools/fetchObsStudyManual.js";
+import * as studyManualRelay from "../../src/content/studyManualRelay.js";
 import {
   emptyEnv,
+  loadFixture,
   restoreFetch,
   stubDcsFetch,
 } from "../helpers/mockDcsFetch.js";
@@ -21,12 +23,43 @@ function relayOf(result: {
   return result._meta?.["bt/relay"] as RelayBlock[] | undefined;
 }
 
+function expectQuestionOnlyObservationText(blocks: RelayBlock[]): void {
+  for (const block of blocks.filter((b) => b.id.endsWith("-observation"))) {
+    const lines = block.text.split("\n");
+    expect(lines.length).toBeGreaterThan(0);
+    for (const line of lines) {
+      expect(line).toMatch(/^- /);
+      expect(line.endsWith("?") || line.endsWith("？") || line.endsWith("؟")).toBe(
+        true,
+      );
+    }
+  }
+}
+
+/** Story 1 with a leaky multi-line answer on frame 01-05; 01-06 stays well-formed. */
+function storyWithLeakyFrame05(): string {
+  const base = loadFixture("obs_story_1.md");
+  const leaky = `#### 01-05  \r
+Q1?  \r
+A1 line one  \r
+A1 line two  \r
+Q2?  \r
+A2\r
+\r
+`;
+  return base.replace(
+    /#### 01-05  \r\nWhat else did God create on the third day\?  \r\nOn the third day, God also created trees and plants\.\r\n\r\nWhat was God's response to the trees and plants he created on the third day\?  \r\nHe said they were good\.\r\n\r\n/,
+    leaky,
+  );
+}
+
 describe("fetch_obs_study_manual relay blocks", () => {
   beforeEach(() => {
     stubDcsFetch();
   });
   afterEach(() => {
     restoreFetch();
+    vi.restoreAllMocks();
   });
 
   it("json, md and text return the same bt/relay blocks", async () => {
@@ -88,7 +121,62 @@ describe("fetch_obs_study_manual relay blocks", () => {
     expect(result._meta).toBeUndefined();
   });
 
-  it("include_answers:false yields the same observation blocks as true", async () => {
+  it.each([
+    { label: "part=full", args: { reference: "1", part: "full" as const } },
+    {
+      label: "part=movement1",
+      args: { reference: "1", part: "movement1" as const },
+    },
+    { label: "movement=1", args: { reference: "1", movement: 1 } },
+    {
+      label: "section=observation",
+      args: { reference: "1", section: "observation" as const },
+    },
+    {
+      label: "section=translation",
+      args: { reference: "1", section: "translation" as const },
+    },
+  ])(
+    "include_answers true and false yield the same bt/relay ($label)",
+    async ({ args }) => {
+      const base = { language: "en", format: "json" as const, ...args };
+      const withAnswers = await fetchObsStudyManualTool.handler(
+        { ...base, include_answers: true },
+        emptyEnv(),
+        `relay-eq-true-${args.reference}`,
+      );
+      const withoutAnswers = await fetchObsStudyManualTool.handler(
+        { ...base, include_answers: false },
+        emptyEnv(),
+        `relay-eq-false-${args.reference}`,
+      );
+      expect(relayOf(withoutAnswers)).toEqual(relayOf(withAnswers));
+      const obs = relayOf(withoutAnswers)?.filter((b) =>
+        b.id.endsWith("-observation"),
+      );
+      if (obs?.length) {
+        expectQuestionOnlyObservationText(obs);
+      }
+    },
+  );
+
+  it("section=translation with include_answers:false has no observation relay block", async () => {
+    const result = await fetchObsStudyManualTool.handler(
+      {
+        reference: "1",
+        language: "en",
+        section: "translation",
+        include_answers: false,
+        format: "json",
+      },
+      emptyEnv(),
+      "relay-trans-no-obs",
+    );
+    const blocks = relayOf(result) ?? [];
+    expect(blocks.some((b) => b.id.endsWith("-observation"))).toBe(false);
+  });
+
+  it("frame-filtered reference yields the same relay for include_answers and only that frame", async () => {
     const args = {
       reference: "1:5",
       language: "en",
@@ -98,32 +186,47 @@ describe("fetch_obs_study_manual relay blocks", () => {
     const withAnswers = await fetchObsStudyManualTool.handler(
       { ...args, include_answers: true },
       emptyEnv(),
-      "relay-ia-true",
+      "relay-frame-true",
     );
     const withoutAnswers = await fetchObsStudyManualTool.handler(
       { ...args, include_answers: false },
       emptyEnv(),
-      "relay-ia-false",
+      "relay-frame-false",
     );
-    const trueRelay = relayOf(withAnswers);
-    const falseRelay = relayOf(withoutAnswers);
-    expect(trueRelay).toBeDefined();
-    expect(trueRelay!.some((b) => b.id.endsWith("-observation"))).toBe(true);
-    expect(falseRelay).toEqual(trueRelay);
-    for (const block of falseRelay!) {
-      expect(block.text).not.toMatch(/^[^-]/);
-      for (const line of block.text.split("\n")) {
-        if (line.startsWith("- ")) {
-          // Question-only lines; answers never appear as a block body.
-          expect(line.endsWith("?") || line.endsWith("？") || line.endsWith("؟")).toBe(
-            true,
-          );
-        }
-      }
+    expect(relayOf(withoutAnswers)).toEqual(relayOf(withAnswers));
+    const blocks = relayOf(withoutAnswers) ?? [];
+    const obs = blocks.filter((b) => b.id.endsWith("-observation"));
+    expect(obs.map((b) => b.id)).toEqual(["obs-en-01-05-observation"]);
+    for (const block of blocks) {
+      expect(block.id).toMatch(/-01-05-/);
     }
   });
 
-  it("include_answers:false leaves content and structuredContent unchanged", async () => {
+  it("include_answers:false on a leaky frame omits it but keeps a trusted frame in the same story", async () => {
+    stubDcsFetch({
+      storyMarkdownByRepo: { en_obs_tf: storyWithLeakyFrame05() },
+    });
+    const result = await fetchObsStudyManualTool.handler(
+      {
+        reference: "1",
+        language: "en",
+        part: "movement1",
+        include_answers: false,
+        format: "json",
+      },
+      emptyEnv(),
+      "relay-leaky-story",
+    );
+    const blocks = relayOf(result) ?? [];
+    expect(blocks.some((b) => b.id === "obs-en-01-05-observation")).toBe(
+      false,
+    );
+    expect(blocks.some((b) => b.text.includes("A1 line two"))).toBe(false);
+    expect(blocks.some((b) => b.id === "obs-en-01-06-observation")).toBe(true);
+    expectQuestionOnlyObservationText(blocks);
+  });
+
+  it("include_answers:false content and structuredContent do not depend on relay blocks", async () => {
     const args = {
       reference: "1:5",
       language: "en",
@@ -131,46 +234,24 @@ describe("fetch_obs_study_manual relay blocks", () => {
       include_answers: false as const,
       format: "json" as const,
     };
-    const result = await fetchObsStudyManualTool.handler(
+    const real = await fetchObsStudyManualTool.handler(
       args,
       emptyEnv(),
-      "relay-ia-sc",
+      "relay-sc-real",
     );
-    expect(result.structuredContent?.includeAnswers).toBe(false);
-    const movements = result.structuredContent?.movements as Array<{
-      observation?: Array<{ items: Array<{ question: string; answer?: string }> }>;
-    }>;
-    const items = movements?.[0]?.observation?.flatMap((b) => b.items) ?? [];
-    expect(items.length).toBeGreaterThan(0);
-    for (const item of items) {
-      expect(item).not.toHaveProperty("answer");
-    }
-    expect(result.structuredContent).not.toHaveProperty("trusted");
-    expect(result.structuredContent).not.toHaveProperty("trust");
-    const scMeta = result.structuredContent?._meta as
-      | Record<string, unknown>
-      | undefined;
-    expect(scMeta).not.toHaveProperty("bt/relay");
-    for (const block of result.content) {
-      expect(block.text).not.toContain("bt/relay");
-    }
-  });
-
-  it("frame-filtered reference still yields only that frame's observation block", async () => {
-    const result = await fetchObsStudyManualTool.handler(
-      {
-        reference: "1:5",
-        language: "en",
-        part: "movement1",
-        include_answers: false,
-        format: "json",
-      },
+    const spy = vi
+      .spyOn(studyManualRelay, "buildStudyManualRelayBlocks")
+      .mockReturnValue([]);
+    const mocked = await fetchObsStudyManualTool.handler(
+      args,
       emptyEnv(),
-      "relay-ia-frame",
+      "relay-sc-mock",
     );
-    const blocks = relayOf(result) ?? [];
-    const obs = blocks.filter((b) => b.id.endsWith("-observation"));
-    expect(obs.map((b) => b.id)).toEqual(["obs-en-01-05-observation"]);
+    expect(mocked.content).toEqual(real.content);
+    expect(mocked.structuredContent).toEqual(real.structuredContent);
+    expect(relayOf(mocked)).toBeUndefined();
+    expect(relayOf(real)?.length).toBeGreaterThan(0);
+    spy.mockRestore();
   });
 });
 
