@@ -138,7 +138,7 @@ describe("fetch_obs_study_manual relay blocks", () => {
     },
   ])(
     "include_answers true and false yield the same bt/relay ($label)",
-    async ({ args }) => {
+    async ({ label, args }) => {
       const base = { language: "en", format: "json" as const, ...args };
       const withAnswers = await fetchObsStudyManualTool.handler(
         { ...base, include_answers: true },
@@ -151,12 +151,13 @@ describe("fetch_obs_study_manual relay blocks", () => {
         `relay-eq-false-${args.reference}`,
       );
       expect(relayOf(withoutAnswers)).toEqual(relayOf(withAnswers));
-      const obs = relayOf(withoutAnswers)?.filter((b) =>
-        b.id.endsWith("-observation"),
-      );
-      if (obs?.length) {
-        expectQuestionOnlyObservationText(obs);
+      const obs =
+        relayOf(withoutAnswers)?.filter((b) => b.id.endsWith("-observation")) ??
+        [];
+      if (label !== "section=translation") {
+        expect(obs.length).toBeGreaterThan(0);
       }
+      expectQuestionOnlyObservationText(obs);
     },
   );
 
@@ -172,8 +173,13 @@ describe("fetch_obs_study_manual relay blocks", () => {
       emptyEnv(),
       "relay-trans-no-obs",
     );
-    const blocks = relayOf(result) ?? [];
-    expect(blocks.some((b) => b.id.endsWith("-observation"))).toBe(false);
+    const relay = relayOf(result);
+    if (relay === undefined) {
+      expect(result._meta).toBeUndefined();
+    } else {
+      expect(relay).toEqual(expect.any(Array));
+      expect(relay.some((b) => b.id.endsWith("-observation"))).toBe(false);
+    }
   });
 
   it("frame-filtered reference yields the same relay for include_answers and only that frame", async () => {
